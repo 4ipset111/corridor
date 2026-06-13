@@ -19,6 +19,9 @@
 #include "text_renderer.h"
 
 bool g_isMenuOpen = false;
+bool g_isSettingsOpen = false;
+bool g_pixelationEnabled = true;
+bool g_vhsEnabled = true;
 double g_mouseX = 0.0, g_mouseY = 0.0;
 
 Camera g_camera;
@@ -41,14 +44,24 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
         float screenY = 800.0f - static_cast<float>(g_mouseY);
         float screenX = static_cast<float>(g_mouseX);
 
-        if (isHovering(screenX, screenY, 450, 750, 440, 480)) { // Continue
-            g_isMenuOpen = false;
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            g_camera.firstMouse = true;
-        } else if (isHovering(screenX, screenY, 450, 750, 390, 430)) { // Settings
-            std::cout << "Settings opened (Placeholder)" << std::endl;
-        } else if (isHovering(screenX, screenY, 450, 750, 340, 380)) { // Exit
-            glfwSetWindowShouldClose(window, true);
+        if (!g_isSettingsOpen) {
+            if (isHovering(screenX, screenY, 450, 750, 440, 480)) { // Continue
+                g_isMenuOpen = false;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                g_camera.firstMouse = true;
+            } else if (isHovering(screenX, screenY, 450, 750, 390, 430)) { // Settings
+                g_isSettingsOpen = true;
+            } else if (isHovering(screenX, screenY, 450, 750, 340, 380)) { // Exit
+                glfwSetWindowShouldClose(window, true);
+            }
+        } else {
+            if (isHovering(screenX, screenY, 450, 750, 440, 480)) { // Pixelation Toggle
+                g_pixelationEnabled = !g_pixelationEnabled;
+            } else if (isHovering(screenX, screenY, 450, 750, 390, 430)) { // VHS Toggle
+                g_vhsEnabled = !g_vhsEnabled;
+            } else if (isHovering(screenX, screenY, 450, 750, 340, 380)) { // Back
+                g_isSettingsOpen = false;
+            }
         }
     }
 }
@@ -63,6 +76,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
         g_isMenuOpen = !g_isMenuOpen;
+        g_isSettingsOpen = false;
         if (g_isMenuOpen) {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         } else {
@@ -205,6 +219,8 @@ int main()
         shader.setFloat("pixelSize", pixelSize);
         shader.setVec3("viewPos", g_camera.getFlashlightPos());
         shader.setFloat("flashlightOn", g_camera.flashlightOn ? 1.0f : 0.0f);
+        shader.setFloat("pixelationOn", g_pixelationEnabled ? 1.0f : 0.0f);
+        shader.setFloat("vhsOn", g_vhsEnabled ? 1.0f : 0.0f);
         shader.setVec3("viewDir", g_camera.getFlashlightDir());
 
         brickTexture.bind();
@@ -224,20 +240,52 @@ int main()
             float centerX = 600.0f;
 
             std::string headerText = "Pause";
+
+            if (!g_isSettingsOpen) {
+                headerText = "Pause";
+            }
+            else {
+                headerText = "Settings";
+            }
             float headerX = centerX - (titleRenderer.getTextWidth(headerText, 1.0f) / 2.0f);
             titleRenderer.renderText(textShader, headerText, headerX, 550.0f, 1.0f, glm::vec3(1.0f));
 
-            glm::vec3 continueColor = isHovering(screenX, screenY, 450, 750, 440, 480) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
-            glm::vec3 settingsColor = isHovering(screenX, screenY, 450, 750, 390, 430) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
-            glm::vec3 exitColor     = isHovering(screenX, screenY, 450, 750, 340, 380) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.3f, 0.3f);
-            
-            float contX = centerX - (textRenderer.getTextWidth("CONTINUE", 0.7f) / 2.0f);
-            float settX = centerX - (textRenderer.getTextWidth("SETTINGS", 0.7f) / 2.0f);
-            float exitX = centerX - (textRenderer.getTextWidth("EXIT", 0.7f) / 2.0f);
+            if (!g_isSettingsOpen) {
+                glm::vec3 continueColor = isHovering(screenX, screenY, 450, 750, 440, 480) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
+                glm::vec3 settingsColor = isHovering(screenX, screenY, 450, 750, 390, 430) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
+                glm::vec3 exitColor     = isHovering(screenX, screenY, 450, 750, 340, 380) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.3f, 0.3f);
+                
+                float contX = centerX - (textRenderer.getTextWidth("CONTINUE", 0.7f) / 2.0f);
+                float settX = centerX - (textRenderer.getTextWidth("SETTINGS", 0.7f) / 2.0f);
+                float exitX = centerX - (textRenderer.getTextWidth("EXIT", 0.7f) / 2.0f);
 
-            textRenderer.renderText(textShader, "CONTINUE", contX, 450.0f, 0.7f, continueColor);
-            textRenderer.renderText(textShader, "SETTINGS", settX, 400.0f, 0.7f, settingsColor);
-            textRenderer.renderText(textShader, "EXIT", exitX, 350.0f, 0.7f, exitColor);
+                textRenderer.renderText(textShader, "CONTINUE", contX, 450.0f, 0.7f, continueColor);
+                textRenderer.renderText(textShader, "SETTINGS", settX, 400.0f, 0.7f, settingsColor);
+                textRenderer.renderText(textShader, "EXIT", exitX, 350.0f, 0.7f, exitColor);
+            } else {
+                std::string pixText = (g_pixelationEnabled ? "[X] PIXELATION" : "[ ] PIXELATION");
+                std::string vhsText = (g_vhsEnabled ? "[X] VHS EFFECT" : "[ ] VHS EFFECT");
+                
+                glm::vec3 pixColor = isHovering(screenX, screenY, 450, 750, 440, 480) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
+                glm::vec3 vhsColor = isHovering(screenX, screenY, 450, 750, 390, 430) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
+                glm::vec3 backColor = isHovering(screenX, screenY, 450, 750, 340, 380) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(0.7f);
+
+                float pixX = centerX - (textRenderer.getTextWidth(pixText, 0.6f) / 2.0f);
+                float vhsX = centerX - (textRenderer.getTextWidth(vhsText, 0.6f) / 2.0f);
+                float backX = centerX - (textRenderer.getTextWidth("BACK", 0.6f) / 2.0f);
+
+                textRenderer.renderText(textShader, pixText, pixX, 450.0f, 0.6f, pixColor);
+                textRenderer.renderText(textShader, vhsText, vhsX, 400.0f, 0.6f, vhsColor);
+                textRenderer.renderText(textShader, "BACK", backX, 350.0f, 0.6f, backColor);
+
+                std::string controlsTitle = "CONTROLS";
+                std::string controlsInfo = "WASD - Move | F - Flashlight | ESC - Menu";
+                float titleX = centerX - (textRenderer.getTextWidth(controlsTitle, 0.5f) / 2.0f);
+                float infoX = centerX - (textRenderer.getTextWidth(controlsInfo, 0.4f) / 2.0f);
+                
+                textRenderer.renderText(textShader, controlsTitle, titleX, 150.0f, 0.5f, glm::vec3(0.8f));
+                textRenderer.renderText(textShader, controlsInfo, infoX, 110.0f, 0.4f, glm::vec3(0.6f));
+            }
 
             glDisable(GL_BLEND);
             glEnable(GL_DEPTH_TEST);

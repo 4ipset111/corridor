@@ -38,20 +38,25 @@ uniform float pixelSize;
 uniform vec3 viewPos;
 uniform float flashlightOn;
 uniform vec3 viewDir;
+uniform float pixelationOn;
+uniform float vhsOn;
 
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
 }
 
 vec4 applyVHSEffect(vec2 uv, float t) {
-    float jitter = random(vec2(t, t)) > 0.98 ? (random(vec2(t)) - 0.5) * 0.02 : 0.0;
+    float jitter = (vhsOn > 0.5 && random(vec2(t, t)) > 0.98) ? (random(vec2(t)) - 0.5) * 0.02 : 0.0;
     vec2 jitteredUV = uv + vec2(jitter, 0.0);
 
-    vec2 pixelatedUV = floor(jitteredUV / pixelSize) * pixelSize;
+    vec2 pixelatedUV = (pixelationOn > 0.5) ? floor(jitteredUV / pixelSize) * pixelSize : jitteredUV;
 
-    float glitch = sin(t * 10.0 + uv.y * 40.0) * 0.02;
-    glitch += (random(vec2(floor(t * 10.0), floor(uv.y * 20.0))) - 0.5) * 0.05;
-    if (random(vec2(t)) < 0.8) glitch *= 0.1;
+    float glitch = 0.0;
+    if (vhsOn > 0.5) {
+        glitch = sin(t * 10.0 + uv.y * 40.0) * 0.02;
+        glitch += (random(vec2(floor(t * 10.0), floor(uv.y * 20.0))) - 0.5) * 0.05;
+        if (random(vec2(t)) < 0.8) glitch *= 0.1;
+    }
 
     float r = texture(texture1, pixelatedUV + vec2(glitch + 0.005, 0.0)).r;
     float g = texture(texture1, pixelatedUV).g;
@@ -59,18 +64,20 @@ vec4 applyVHSEffect(vec2 uv, float t) {
 
     vec4 vhsColor = vec4(r, g, b, 1.0);
 
-    float scanline = sin(uv.y * 400.0 - t * 10.0) * 0.15;
-    vhsColor.rgb -= scanline;
+    if (vhsOn > 0.5) {
+        float scanline = sin(uv.y * 400.0 - t * 10.0) * 0.15;
+        vhsColor.rgb -= scanline;
 
-    float noise = (random(vec2(uv.x + t, uv.y + t)) - 0.5) * 0.25;
-    vhsColor.rgb += noise;
+        float noise = (random(vec2(uv.x + t, uv.y + t)) - 0.5) * 0.25;
+        vhsColor.rgb += noise;
 
-    vhsColor.rgb = mix(vhsColor.rgb, vec3(dot(vhsColor.rgb, vec3(0.299, 0.587, 0.114))), 0.2);
+        vhsColor.rgb = mix(vhsColor.rgb, vec3(dot(vhsColor.rgb, vec3(0.299, 0.587, 0.114))), 0.2);
 
-    float scratchX = random(vec2(floor(t * 10.0), 0.3));
-    float scratch = 1.0 - smoothstep(0.0, 0.0015, abs(uv.x - scratchX));
-    if (random(vec2(t, 0.5)) > 0.98)
-        vhsColor.rgb -= scratch * 0.5;
+        float scratchX = random(vec2(floor(t * 10.0), 0.3));
+        float scratch = 1.0 - smoothstep(0.0, 0.0015, abs(uv.x - scratchX));
+        if (random(vec2(t, 0.5)) > 0.98)
+            vhsColor.rgb -= scratch * 0.5;
+    }
 
     return vhsColor;
 }
