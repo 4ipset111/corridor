@@ -65,6 +65,7 @@ set(EXTERNAL_LIBS
     external/glad/include/glad/glad.h
     external/glad/include/KHR/khrplatform.h
     external/glad/src/glad.c
+    external/stb/stb_image_resize2.h
     external/stb/stb_image.h
 )
 

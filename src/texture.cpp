@@ -4,6 +4,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize2.h"
+
 Texture::Texture(const char* path)
 {
     glGenTextures(1, &id);
@@ -76,13 +79,10 @@ TextureArray::TextureArray(const std::vector<std::string>& paths)
                           << " to " << storageWidth << "x" << storageHeight << "..." << std::endl;
                 
                 resizedData = (unsigned char*)malloc(storageWidth * storageHeight * 4);
-                for (int y = 0; y < storageHeight; y++) {
-                    for (int x = 0; x < storageWidth; x++) {
-                        int srcX = (x * currentWidth) / storageWidth;
-                        int srcY = (y * currentHeight) / storageHeight;
-                        memcpy(&resizedData[(y * storageWidth + x) * 4], &data[(srcY * currentWidth + srcX) * 4], 4);
-                    }
-                }
+                stbir_resize_uint8_srgb(data, currentWidth, currentHeight, 0, 
+                                   resizedData, storageWidth, storageHeight, 0, 
+                                   STBIR_RGBA);
+                
                 uploadData = resizedData;
             }
             glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, storageWidth, storageHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, uploadData);
