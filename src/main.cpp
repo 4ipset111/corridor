@@ -10,7 +10,9 @@
 #include "shader_sources.h"
 #include "texture.h"
 #include "geometry.h"
+#include "audio_manager.h"
 #include "camera.h"
+
 
 Camera g_camera;
 
@@ -24,6 +26,13 @@ int main()
     if (!glfwInit())
     {
         std::cerr << "Failed to initialize GLFW" << std::endl;
+        return -1;
+    }
+
+    AudioManager audioManager;
+    if (!audioManager.init()) {
+        std::cerr << "Failed to initialize FMOD Audio Manager" << std::endl;
+        glfwTerminate();
         return -1;
     }
 
@@ -74,6 +83,12 @@ int main()
     floors.push_back({-1.0f, 1.0f, -10.0f, 10.0f, -1.0f});
     g_camera.setFloors(floors);
 
+    if (!audioManager.loadBackgroundMusic("assets/bgsong.mp3")) {
+        std::cerr << "Failed to load background music" << std::endl;
+    } else {
+        audioManager.playBackgroundMusic();
+    }
+
     while (glfwGetTime() < 2.0) {
         glfwPollEvents();
     }
@@ -101,6 +116,8 @@ int main()
         g_camera.updateMovement(moveForward, moveBackward, moveLeft, moveRight, deltaTime);
         g_camera.updateGravity(deltaTime);
         g_camera.updateFlashlight(deltaTime);
+        
+        audioManager.update();
 
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = g_camera.getViewMatrix();
