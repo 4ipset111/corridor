@@ -85,17 +85,6 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             }
         }
     }
-    if (key == GLFW_KEY_E && action == GLFW_PRESS && !g_isMenuOpen)
-    {
-        glm::vec3 doorPos(0.0f, 1.0f, -10.0f);
-        if (glm::distance(g_camera.position, doorPos) < 2.5f) {
-            glm::vec3 viewDir = g_camera.getFlashlightDir();
-            if (glm::dot(viewDir, glm::normalize(doorPos - g_camera.position)) > 0.7f) {
-                g_audioManager.playDoorLockedSound();
-                g_doorShakeTime = 0.25f;
-            }
-        }
-    }
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
         g_isMenuOpen = !g_isMenuOpen;
@@ -162,13 +151,14 @@ int main()
 
     Shader shader(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE);
 
-    Texture brickTexture("assets/brick.png");
-    Texture grassTexture("assets/grass.png");
-    Texture doorTexture("assets/door.png");
+    std::vector<std::string> texturePaths = {
+        "assets/brick.png",
+        "assets/grass.png",
+        "assets/door.png"
+    };
+    TextureArray corridorTextures(texturePaths);
 
-    Geometry wallGeometry;
-    FloorGeometry floorGeometry;
-    DoorGeometry doorGeometry;
+    BatchedGeometry batchedScene;
 
     TextRenderer textRenderer;
     textRenderer.load("C:/Windows/Fonts/arial.ttf", 48);
@@ -245,31 +235,25 @@ int main()
         );
 
         shader.use();
-        shader.setMatrix4fv("model", model);
         shader.setMatrix4fv("view", view);
         shader.setMatrix4fv("projection", projection);
         shader.setFloat("time", static_cast<float>(glfwGetTime()));
         shader.setFloat("pixelSize", pixelSize);
+        shader.setInt("textureArray", 0);
         shader.setVec3("viewPos", g_camera.getFlashlightPos());
         shader.setFloat("flashlightOn", g_camera.flashlightOn ? 1.0f : 0.0f);
         shader.setFloat("pixelationOn", g_pixelationEnabled ? 1.0f : 0.0f);
         shader.setFloat("vhsOn", g_vhsEnabled ? 1.0f : 0.0f);
         shader.setVec3("viewDir", g_camera.getFlashlightDir());
 
-        brickTexture.bind();
-        wallGeometry.render();
-
-        grassTexture.bind();
-        floorGeometry.render();
-
-        glm::mat4 doorModel = glm::mat4(1.0f);
+        float doorShakeAmount = 0.0f;
         if (g_doorShakeTime > 0.0f) {
-            float shake = sin(glfwGetTime() * 100.0f) * 0.02f;
-            doorModel = glm::translate(doorModel, glm::vec3(shake, 0.0f, 0.0f));
+            doorShakeAmount = static_cast<float>(sin(glfwGetTime() * 100.0) * 0.02);
         }
-        shader.setMatrix4fv("model", doorModel);
-        doorTexture.bind();
-        doorGeometry.render();
+        shader.setFloat("doorShake", doorShakeAmount);
+        shader.setMatrix4fv("model", glm::mat4(1.0f));
+        corridorTextures.bind(0);
+        batchedScene.render();
 
         if (g_isMenuOpen) {
             glDisable(GL_DEPTH_TEST);

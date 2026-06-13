@@ -6,21 +6,27 @@ const char* VERTEX_SHADER_SOURCE = R"(
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec2 aTexCoord;
 layout(location = 2) in vec3 aNormal;
+layout(location = 3) in float aTexID;
 
 out vec2 TexCoord;
 out vec3 Normal;
 out vec3 FragPos;
+out flat float TexID;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform float doorShake;
 
 void main()
 {
-    FragPos = vec3(model * vec4(aPos, 1.0));
+    vec3 pos = aPos;
+    if (aTexID > 1.5) pos.x += doorShake;
+    FragPos = vec3(model * vec4(pos, 1.0));
     Normal = mat3(transpose(inverse(model))) * aNormal;
     TexCoord = aTexCoord;
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    TexID = aTexID;
+    gl_Position = projection * view * model * vec4(pos, 1.0);
 }
 )";
 
@@ -31,8 +37,9 @@ in vec3 Normal;
 in vec3 FragPos;
 
 out vec4 FragColor;
+in flat float TexID;
 
-uniform sampler2D texture1;
+uniform sampler2DArray textureArray;
 uniform float time;
 uniform float pixelSize;
 uniform vec3 viewPos;
@@ -58,9 +65,10 @@ vec4 applyVHSEffect(vec2 uv, float t) {
         if (random(vec2(t)) < 0.8) glitch *= 0.1;
     }
 
-    float r = texture(texture1, pixelatedUV + vec2(glitch + 0.005, 0.0)).r;
-    float g = texture(texture1, pixelatedUV).g;
-    float b = texture(texture1, pixelatedUV - vec2(glitch + 0.005, 0.0)).b;
+    vec3 uvLayer = vec3(pixelatedUV, TexID);
+    float r = texture(textureArray, uvLayer + vec3(glitch + 0.005, 0.0, 0.0)).r;
+    float g = texture(textureArray, uvLayer).g;
+    float b = texture(textureArray, uvLayer - vec3(glitch + 0.005, 0.0, 0.0)).b;
 
     vec4 vhsColor = vec4(r, g, b, 1.0);
 

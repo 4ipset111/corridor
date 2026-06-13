@@ -48,4 +48,15 @@ private:
     void createDoorGeometry();
 };
 
+class BatchedGeometry
+{
+public:
+    GLuint VAO, VBO, EBO;
+    int indexCount;
+
+    BatchedGeometry();
+    ~BatchedGeometry();
+    void render() const;
+};
+
 #endif // __GEOMETRY_H__
