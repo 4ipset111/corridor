@@ -11,15 +11,21 @@ FetchContent_Declare(
     GIT_TAG 3.4
 )
 
+set(GLFW_BUILD_DLL ON CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm
     GIT_TAG 1.0.1
 )
 
-set(GLFW_BUILD_DLL ON CACHE BOOL "" FORCE)
+FetchContent_Declare(
+    freetype
+    GIT_REPOSITORY https://github.com/freetype/freetype
+    GIT_TAG VER-2-14-3
+)
 
-FetchContent_MakeAvailable(glfw glm)
+FetchContent_MakeAvailable(glfw glm freetype)
 
 set(FMOD_SDK_PATH "C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows")
 
@@ -52,6 +58,7 @@ set(SOURCE_FILES
     src/geometry.cpp
     src/audio_manager.cpp
     src/camera.cpp
+    src/text_renderer.cpp
 )
 
 set(EXTERNAL_LIBS
@@ -71,7 +78,7 @@ target_include_directories(corridor PRIVATE
     "${FMOD_SDK_PATH}/api/studio/inc"
 )
 
-target_link_libraries(corridor PRIVATE glfw glm::glm
+target_link_libraries(corridor PRIVATE glfw glm::glm freetype
     ${FMOD_CORE_LIBRARY}
     ${FMOD_STUDIO_LIBRARY}
 )

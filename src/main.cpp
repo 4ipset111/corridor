@@ -5,6 +5,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <string>
+#include <map>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include "shader.h"
 #include "shader_sources.h"
@@ -12,13 +16,41 @@
 #include "geometry.h"
 #include "audio_manager.h"
 #include "camera.h"
+#include "text_renderer.h"
+
+bool g_isMenuOpen = false;
+double g_mouseX = 0.0, g_mouseY = 0.0;
 
 Camera g_camera;
 AudioManager g_audioManager;
 
 void mouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
-    g_camera.updateMouse(xpos, ypos);
+    g_mouseX = xpos;
+    g_mouseY = ypos;
+    if (!g_isMenuOpen)
+        g_camera.updateMouse(xpos, ypos);
+}
+
+bool isHovering(float x, float y, float minX, float maxX, float minY, float maxY) {
+    return x >= minX && x <= maxX && y >= minY && y <= maxY;
+}
+
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    if (g_isMenuOpen && button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        float screenY = 800.0f - static_cast<float>(g_mouseY);
+        float screenX = static_cast<float>(g_mouseX);
+
+        if (isHovering(screenX, screenY, 450, 750, 440, 480)) { // Continue
+            g_isMenuOpen = false;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            g_camera.firstMouse = true;
+        } else if (isHovering(screenX, screenY, 450, 750, 390, 430)) { // Settings
+            std::cout << "Settings opened (Placeholder)" << std::endl;
+        } else if (isHovering(screenX, screenY, 450, 750, 340, 380)) { // Exit
+            glfwSetWindowShouldClose(window, true);
+        }
+    }
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -27,6 +59,16 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     {
         g_camera.flashlightOn = !g_camera.flashlightOn;
         g_audioManager.playFlashlightSound();
+    }
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    {
+        g_isMenuOpen = !g_isMenuOpen;
+        if (g_isMenuOpen) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        } else {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            g_camera.firstMouse = true;
+        }
     }
 }
 
@@ -61,6 +103,7 @@ int main()
 
     glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetKeyCallback(window, keyCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -87,6 +130,17 @@ int main()
 
     Geometry wallGeometry;
     FloorGeometry floorGeometry;
+
+    TextRenderer textRenderer;
+    textRenderer.load("C:/Windows/Fonts/arial.ttf", 48);
+
+    TextRenderer titleRenderer;
+    titleRenderer.load("assets/menufont.ttf", 64);
+
+    Shader textShader(TEXT_VERTEX_SOURCE, TEXT_FRAGMENT_SOURCE);
+    glm::mat4 projectionText = glm::ortho(0.0f, 1200.0f, 0.0f, 800.0f);
+    textShader.use();
+    textShader.setMatrix4fv("projection", projectionText);
 
     std::vector<FloorAABB> floors;
     floors.push_back({-1.0f, 1.0f, -10.0f, 10.0f, -1.0f});
@@ -126,9 +180,11 @@ int main()
         bool moveLeft = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS;
         bool moveRight = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS;
 
-        g_camera.updateMovement(moveForward, moveBackward, moveLeft, moveRight, deltaTime);
-        g_camera.updateGravity(deltaTime);
-        g_camera.updateFlashlight(deltaTime);
+        if (!g_isMenuOpen) {
+            g_camera.updateMovement(moveForward, moveBackward, moveLeft, moveRight, deltaTime);
+            g_camera.updateGravity(deltaTime);
+            g_camera.updateFlashlight(deltaTime);
+        }
         
         g_audioManager.update();
 
@@ -156,6 +212,36 @@ int main()
 
         grassTexture.bind();
         floorGeometry.render();
+
+        if (g_isMenuOpen) {
+            glDisable(GL_DEPTH_TEST);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            float screenY = 800.0f - static_cast<float>(g_mouseY);
+            float screenX = static_cast<float>(g_mouseX);
+
+            float centerX = 600.0f;
+
+            std::string headerText = "Pause";
+            float headerX = centerX - (titleRenderer.getTextWidth(headerText, 1.0f) / 2.0f);
+            titleRenderer.renderText(textShader, headerText, headerX, 550.0f, 1.0f, glm::vec3(1.0f));
+
+            glm::vec3 continueColor = isHovering(screenX, screenY, 450, 750, 440, 480) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
+            glm::vec3 settingsColor = isHovering(screenX, screenY, 450, 750, 390, 430) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
+            glm::vec3 exitColor     = isHovering(screenX, screenY, 450, 750, 340, 380) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.3f, 0.3f);
+            
+            float contX = centerX - (textRenderer.getTextWidth("CONTINUE", 0.7f) / 2.0f);
+            float settX = centerX - (textRenderer.getTextWidth("SETTINGS", 0.7f) / 2.0f);
+            float exitX = centerX - (textRenderer.getTextWidth("EXIT", 0.7f) / 2.0f);
+
+            textRenderer.renderText(textShader, "CONTINUE", contX, 450.0f, 0.7f, continueColor);
+            textRenderer.renderText(textShader, "SETTINGS", settX, 400.0f, 0.7f, settingsColor);
+            textRenderer.renderText(textShader, "EXIT", exitX, 350.0f, 0.7f, exitColor);
+
+            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
