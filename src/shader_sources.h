@@ -66,6 +66,11 @@ vec4 applyVHSEffect(vec2 uv, float t) {
 
     vhsColor.rgb = mix(vhsColor.rgb, vec3(dot(vhsColor.rgb, vec3(0.299, 0.587, 0.114))), 0.2);
 
+    float scratchX = random(vec2(floor(t * 10.0), 0.3));
+    float scratch = 1.0 - smoothstep(0.0, 0.0015, abs(uv.x - scratchX));
+    if (random(vec2(t, 0.5)) > 0.98)
+        vhsColor.rgb -= scratch * 0.5;
+
     return vhsColor;
 }
 
