@@ -4,7 +4,7 @@
 #include <iostream>
 
 Camera::Camera()
-    : position(0.0f, FLOOR_HEIGHT + PLAYER_HEIGHT, 0.0f),
+    : position(0.0f, FLOOR_HEIGHT + PLAYER_HEIGHT, 9.7f),
       yaw(-90.0f),
       pitch(0.0f),
       lastMouseX(0.0f),
@@ -128,7 +128,7 @@ void Camera::updateGravity(float dt) {
         position.y = nextY;
 
         if (position.y < -20.0f) {
-            position = glm::vec3(0.0f, FLOOR_HEIGHT + PLAYER_HEIGHT, 0.0f);
+            position = glm::vec3(0.0f, FLOOR_HEIGHT + PLAYER_HEIGHT, 9.7f);
             velocity = 0.0f;
         }
     }
