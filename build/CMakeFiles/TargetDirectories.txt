@@ -1,0 +1,15 @@
+C:/Users/chipset/projectpp/corridor/build/CMakeFiles/corridor.dir
+C:/Users/chipset/projectpp/corridor/build/CMakeFiles/INSTALL.dir
+C:/Users/chipset/projectpp/corridor/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/chipset/projectpp/corridor/build/CMakeFiles/ZERO_CHECK.dir
+C:/Users/chipset/projectpp/corridor/build/_deps/glfw-build/CMakeFiles/uninstall.dir
+C:/Users/chipset/projectpp/corridor/build/_deps/glfw-build/CMakeFiles/INSTALL.dir
+C:/Users/chipset/projectpp/corridor/build/_deps/glfw-build/CMakeFiles/ALL_BUILD.dir
+C:/Users/chipset/projectpp/corridor/build/_deps/glfw-build/src/CMakeFiles/glfw.dir
+C:/Users/chipset/projectpp/corridor/build/_deps/glfw-build/src/CMakeFiles/update_mappings.dir
+C:/Users/chipset/projectpp/corridor/build/_deps/glfw-build/src/CMakeFiles/INSTALL.dir
+C:/Users/chipset/projectpp/corridor/build/_deps/glfw-build/docs/CMakeFiles/INSTALL.dir
+C:/Users/chipset/projectpp/corridor/build/_deps/glm-build/CMakeFiles/INSTALL.dir
+C:/Users/chipset/projectpp/corridor/build/_deps/glm-build/CMakeFiles/ALL_BUILD.dir
+C:/Users/chipset/projectpp/corridor/build/_deps/glm-build/glm/CMakeFiles/glm.dir
+C:/Users/chipset/projectpp/corridor/build/_deps/glm-build/glm/CMakeFiles/INSTALL.dir

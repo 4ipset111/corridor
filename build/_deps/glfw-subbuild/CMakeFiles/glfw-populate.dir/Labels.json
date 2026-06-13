@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/CMakeFiles/glfw-populate"
+		},
+		{
+			"file" : "C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/CMakeFiles/dac90f91c92f38faedb9eb7bcfca6ef9/glfw-populate.rule"
+		},
+		{
+			"file" : "C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/CMakeFiles/3411415e555a14fdd4a3260e0cf1cb8f/glfw-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/CMakeFiles/189f03139058002cfcd32e51456aca26/glfw-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/CMakeFiles/189f03139058002cfcd32e51456aca26/glfw-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/CMakeFiles/189f03139058002cfcd32e51456aca26/glfw-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/CMakeFiles/189f03139058002cfcd32e51456aca26/glfw-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/CMakeFiles/189f03139058002cfcd32e51456aca26/glfw-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/CMakeFiles/189f03139058002cfcd32e51456aca26/glfw-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/CMakeFiles/189f03139058002cfcd32e51456aca26/glfw-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/CMakeFiles/189f03139058002cfcd32e51456aca26/glfw-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"glfw-populate"
+		],
+		"name" : "glfw-populate"
+	}
+}

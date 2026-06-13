@@ -1,0 +1,10 @@
+^C:\USERS\CHIPSET\PROJECTPP\CORRIDOR\BUILD\_DEPS\GLM-SUBBUILD\CMAKEFILES\B68124C2043FF11095EED5C3FBA77447\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/chipset/projectpp/corridor/build/_deps/glm-subbuild -BC:/Users/chipset/projectpp/corridor/build/_deps/glm-subbuild --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/chipset/projectpp/corridor/build/_deps/glm-subbuild/glm-populate.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

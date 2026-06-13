@@ -1,0 +1,10 @@
+^C:\USERS\CHIPSET\PROJECTPP\CORRIDOR\BUILD\_DEPS\GLFW-SUBBUILD\CMAKEFILES\DAC90F91C92F38FAEDB9EB7BCFCA6EF9\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild -BC:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/chipset/projectpp/corridor/build/_deps/glfw-subbuild/glfw-populate.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
