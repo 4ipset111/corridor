@@ -3,11 +3,14 @@
 #include <fmod_errors.h>
 
 AudioManager::AudioManager()
-    : fmodSystem(nullptr), backgroundMusicSound(nullptr), backgroundMusicChannel(nullptr) {}
+    : fmodSystem(nullptr), backgroundMusicSound(nullptr), flashlightSound(nullptr), backgroundMusicChannel(nullptr) {}
 
 AudioManager::~AudioManager() {
     if (backgroundMusicChannel) {
         backgroundMusicChannel->stop();
+    }
+    if (flashlightSound) {
+        flashlightSound->release();
     }
     if (backgroundMusicSound) {
         backgroundMusicSound->release();
@@ -77,6 +80,30 @@ void AudioManager::stopBackgroundMusic() {
 void AudioManager::setBackgroundMusicVolume(float volume) {
     if (backgroundMusicChannel) {
         backgroundMusicChannel->setVolume(volume);
+    }
+}
+
+bool AudioManager::loadFlashlightSound(const std::string& path) {
+    if (!fmodSystem) {
+        std::cerr << "FMOD System not initialized." << std::endl;
+        return false;
+    }
+
+    FMOD_RESULT result = fmodSystem->createSound(
+        path.c_str(),
+        FMOD_2D,
+        nullptr,
+        &flashlightSound
+    );
+    if (checkFMODError(result, "FMOD System::createSound (flashlight sound)")) {
+        return false;
+    }
+    return true;
+}
+
+void AudioManager::playFlashlightSound() {
+    if (fmodSystem && flashlightSound) {
+        fmodSystem->playSound(flashlightSound, nullptr, false, nullptr);
     }
 }
 

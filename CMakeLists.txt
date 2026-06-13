@@ -17,6 +17,8 @@ FetchContent_Declare(
     GIT_TAG 1.0.1
 )
 
+set(GLFW_BUILD_DLL ON CACHE BOOL "" FORCE)
+
 FetchContent_MakeAvailable(glfw glm)
 
 set(FMOD_SDK_PATH "C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows")
@@ -68,6 +70,7 @@ target_include_directories(corridor PRIVATE
     "${FMOD_SDK_PATH}/api/core/inc"
     "${FMOD_SDK_PATH}/api/studio/inc"
 )
+
 target_link_libraries(corridor PRIVATE glfw glm::glm
     ${FMOD_CORE_LIBRARY}
     ${FMOD_STUDIO_LIBRARY}
@@ -91,6 +94,8 @@ if(WIN32)
             ${FMOD_STUDIO_DLLS}
             $<TARGET_FILE_DIR:corridor>
 
-        COMMENT "Copying FMOD DLLs to build directory"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:glfw>
+            $<TARGET_FILE_DIR:corridor>
     )
 endif()

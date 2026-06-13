@@ -16,10 +16,13 @@ public:
     bool playBackgroundMusic();
     void stopBackgroundMusic();
     void setBackgroundMusicVolume(float volume);
+    bool loadFlashlightSound(const std::string& path);
+    void playFlashlightSound();
 
 private:
     FMOD::System* fmodSystem;
     FMOD::Sound* backgroundMusicSound;
+    FMOD::Sound* flashlightSound;
     FMOD::Channel* backgroundMusicChannel;
     bool checkFMODError(FMOD_RESULT result, const std::string& message);
 };

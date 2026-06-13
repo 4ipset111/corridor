@@ -13,8 +13,8 @@
 #include "audio_manager.h"
 #include "camera.h"
 
-
 Camera g_camera;
+AudioManager g_audioManager;
 
 void mouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -26,6 +26,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_F && action == GLFW_PRESS)
     {
         g_camera.flashlightOn = !g_camera.flashlightOn;
+        g_audioManager.playFlashlightSound();
     }
 }
 
@@ -37,8 +38,7 @@ int main()
         return -1;
     }
 
-    AudioManager audioManager;
-    if (!audioManager.init()) {
+    if (!g_audioManager.init()) {
         std::cerr << "Failed to initialize FMOD Audio Manager" << std::endl;
         glfwTerminate();
         return -1;
@@ -92,10 +92,14 @@ int main()
     floors.push_back({-1.0f, 1.0f, -10.0f, 10.0f, -1.0f});
     g_camera.setFloors(floors);
 
-    if (!audioManager.loadBackgroundMusic("assets/bgsong.mp3")) {
+    if (!g_audioManager.loadBackgroundMusic("assets/bgsong.mp3")) {
         std::cerr << "Failed to load background music" << std::endl;
     } else {
-        audioManager.playBackgroundMusic();
+        g_audioManager.playBackgroundMusic();
+    }
+
+    if (!g_audioManager.loadFlashlightSound("assets/flashlight.mp3")) {
+        std::cerr << "Failed to load flashlight sound" << std::endl;
     }
 
     while (glfwGetTime() < 2.0) {
@@ -126,7 +130,7 @@ int main()
         g_camera.updateGravity(deltaTime);
         g_camera.updateFlashlight(deltaTime);
         
-        audioManager.update();
+        g_audioManager.update();
 
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = g_camera.getViewMatrix();
