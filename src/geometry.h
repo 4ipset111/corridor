@@ -33,4 +33,19 @@ private:
     void createFloorGeometry();
 };
 
+class DoorGeometry
+{
+public:
+    GLuint VAO, VBO, EBO;
+    int indexCount;
+
+    DoorGeometry();
+    ~DoorGeometry();
+
+    void render() const;
+
+private:
+    void createDoorGeometry();
+};
+
 #endif // __GEOMETRY_H__

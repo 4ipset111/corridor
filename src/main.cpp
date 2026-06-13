@@ -23,6 +23,7 @@ bool g_isSettingsOpen = false;
 bool g_pixelationEnabled = true;
 bool g_vhsEnabled = true;
 double g_mouseX = 0.0, g_mouseY = 0.0;
+float g_doorShakeTime = 0.0f;
 
 Camera g_camera;
 AudioManager g_audioManager;
@@ -72,6 +73,28 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     {
         g_camera.flashlightOn = !g_camera.flashlightOn;
         g_audioManager.playFlashlightSound();
+    }
+    if (key == GLFW_KEY_E && action == GLFW_PRESS && !g_isMenuOpen)
+    {
+        glm::vec3 doorPos(0.0f, 1.0f, -10.0f);
+        if (glm::distance(g_camera.position, doorPos) < 2.5f) {
+            glm::vec3 viewDir = g_camera.getFlashlightDir();
+            if (glm::dot(viewDir, glm::normalize(doorPos - g_camera.position)) > 0.7f) {
+                g_audioManager.playDoorLockedSound();
+                g_doorShakeTime = 0.25f;
+            }
+        }
+    }
+    if (key == GLFW_KEY_E && action == GLFW_PRESS && !g_isMenuOpen)
+    {
+        glm::vec3 doorPos(0.0f, 1.0f, -10.0f);
+        if (glm::distance(g_camera.position, doorPos) < 2.5f) {
+            glm::vec3 viewDir = g_camera.getFlashlightDir();
+            if (glm::dot(viewDir, glm::normalize(doorPos - g_camera.position)) > 0.7f) {
+                g_audioManager.playDoorLockedSound();
+                g_doorShakeTime = 0.25f;
+            }
+        }
     }
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
@@ -141,9 +164,11 @@ int main()
 
     Texture brickTexture("assets/brick.png");
     Texture grassTexture("assets/grass.png");
+    Texture doorTexture("assets/door.png");
 
     Geometry wallGeometry;
     FloorGeometry floorGeometry;
+    DoorGeometry doorGeometry;
 
     TextRenderer textRenderer;
     textRenderer.load("C:/Windows/Fonts/arial.ttf", 48);
@@ -168,6 +193,10 @@ int main()
 
     if (!g_audioManager.loadFlashlightSound("assets/flashlight.mp3")) {
         std::cerr << "Failed to load flashlight sound" << std::endl;
+    }
+
+    if (!g_audioManager.loadDoorLockedSound("assets/closed_door.mp3")) {
+        std::cerr << "Failed to load door sound" << std::endl;
     }
 
     while (glfwGetTime() < 2.0) {
@@ -198,6 +227,10 @@ int main()
             g_camera.updateMovement(moveForward, moveBackward, moveLeft, moveRight, deltaTime);
             g_camera.updateGravity(deltaTime);
             g_camera.updateFlashlight(deltaTime);
+            
+            if (g_doorShakeTime > 0.0f) {
+                g_doorShakeTime -= deltaTime;
+            }
         }
         
         g_audioManager.update();
@@ -228,6 +261,15 @@ int main()
 
         grassTexture.bind();
         floorGeometry.render();
+
+        glm::mat4 doorModel = glm::mat4(1.0f);
+        if (g_doorShakeTime > 0.0f) {
+            float shake = sin(glfwGetTime() * 100.0f) * 0.02f;
+            doorModel = glm::translate(doorModel, glm::vec3(shake, 0.0f, 0.0f));
+        }
+        shader.setMatrix4fv("model", doorModel);
+        doorTexture.bind();
+        doorGeometry.render();
 
         if (g_isMenuOpen) {
             glDisable(GL_DEPTH_TEST);

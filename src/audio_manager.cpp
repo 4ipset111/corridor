@@ -107,6 +107,21 @@ void AudioManager::playFlashlightSound() {
     }
 }
 
+bool AudioManager::loadDoorLockedSound(const std::string& path) {
+    if (!fmodSystem) return false;
+    FMOD_RESULT result = fmodSystem->createSound(path.c_str(), FMOD_2D, nullptr, &doorLockedSound);
+    if (checkFMODError(result, "FMOD System::createSound (door sound)")) {
+        return false;
+    }
+    return true;
+}
+
+void AudioManager::playDoorLockedSound() {
+    if (fmodSystem && doorLockedSound) {
+        fmodSystem->playSound(doorLockedSound, nullptr, false, nullptr);
+    }
+}
+
 bool AudioManager::checkFMODError(FMOD_RESULT result, const std::string& message) {
     if (result != FMOD_OK) {
         std::cerr << "FMOD error! " << message << ": " << FMOD_ErrorString(result) << std::endl;
