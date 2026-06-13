@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <string>
 
 #include "shader.h"
 #include "shader_sources.h"
@@ -54,6 +55,11 @@ int main()
 
     glViewport(0, 0, 1200, 800);
     glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glfwSwapBuffers(window);
+
     glEnable(GL_DEPTH_TEST);
 
     Shader shader(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE);
@@ -68,10 +74,23 @@ int main()
     floors.push_back({-1.0f, 1.0f, -10.0f, 10.0f, -1.0f});
     g_camera.setFloors(floors);
 
+    while (glfwGetTime() < 2.0) {
+        glfwPollEvents();
+    }
+
     float pixelSize = 0.02f;
+    float deltaTime = 0.0f;
+    float lastFrame = 0.0f;
 
     while (!glfwWindowShouldClose(window))
     {
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        std::string title = "corridor | FPS: " + std::to_string(static_cast<int>(1.0f / deltaTime));
+        glfwSetWindowTitle(window, title.c_str());
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         bool moveForward = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS;
@@ -79,9 +98,9 @@ int main()
         bool moveLeft = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS;
         bool moveRight = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS;
 
-        g_camera.updateMovement(moveForward, moveBackward, moveLeft, moveRight);
-        g_camera.updateGravity();
-        g_camera.updateFlashlight();
+        g_camera.updateMovement(moveForward, moveBackward, moveLeft, moveRight, deltaTime);
+        g_camera.updateGravity(deltaTime);
+        g_camera.updateFlashlight(deltaTime);
 
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = g_camera.getViewMatrix();

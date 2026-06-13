@@ -59,8 +59,10 @@ void Camera::updateMouse(double xpos, double ypos)
         pitch = -89.0f;
 }
 
-void Camera::updateMovement(bool moveForward, bool moveBackward, bool moveLeft, bool moveRight)
+void Camera::updateMovement(bool moveForward, bool moveBackward, bool moveLeft, bool moveRight, float dt)
 {
+    float currentSpeed = SPEED * dt * 60.0f;
+
     glm::vec3 front = getFront();
     front.y = 0.0f;
     if (glm::length(front) > 0.001f) {
@@ -72,14 +74,14 @@ void Camera::updateMovement(bool moveForward, bool moveBackward, bool moveLeft, 
     glm::vec3 right = getRight();
 
     if (moveForward)
-        position += front * SPEED;
+        position += front * currentSpeed;
     if (moveBackward)
-        position -= front * SPEED;
+        position -= front * currentSpeed;
 
     if (moveLeft)
-        position -= right * SPEED;
+        position -= right * currentSpeed;
     if (moveRight)
-        position += right * SPEED;
+        position += right * currentSpeed;
 
     float margin = 0.3f;
     if (position.x < -1.0f + margin)
@@ -112,10 +114,10 @@ float Camera::castRayDown() const {
     return hitLevel;
 }
 
-void Camera::updateGravity() {
-    velocity -= GRAVITY;
+void Camera::updateGravity(float dt) {
+    velocity -= GRAVITY * dt * 60.0f;
 
-    float nextY = position.y + velocity;
+    float nextY = position.y + velocity * dt * 60.0f;
     float hitLevel = castRayDown();
 
     if (hitLevel > -999.0f && nextY <= hitLevel + PLAYER_HEIGHT) {
@@ -137,10 +139,13 @@ void Camera::updateGravity() {
     }
 }
 
-void Camera::updateFlashlight()
+void Camera::updateFlashlight(float dt)
 {
-    flashlightPos = glm::mix(flashlightPos, position, 0.15f);
-    flashlightDir = glm::mix(flashlightDir, getFront(), 0.07f);
+    float posLerp = 1.0f - pow(1.0f - 0.15f, dt * 60.0f);
+    float dirLerp = 1.0f - pow(1.0f - 0.07f, dt * 60.0f);
+
+    flashlightPos = glm::mix(flashlightPos, position, posLerp);
+    flashlightDir = glm::mix(flashlightDir, getFront(), dirLerp);
     flashlightDir = glm::normalize(flashlightDir);
 }
 

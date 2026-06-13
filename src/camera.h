@@ -28,9 +28,9 @@ public:
     Camera();
 
     void updateMouse(double xpos, double ypos);
-    void updateMovement(bool moveForward, bool moveBackward, bool moveLeft, bool moveRight);
-    void updateGravity();
-    void updateFlashlight();
+    void updateMovement(bool moveForward, bool moveBackward, bool moveLeft, bool moveRight, float dt);
+    void updateGravity(float dt);
+    void updateFlashlight(float dt);
 
     glm::mat4 getViewMatrix() const;
 
