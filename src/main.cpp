@@ -17,6 +17,7 @@
 #include "audio_manager.h"
 #include "camera.h"
 #include "text_renderer.h"
+#include "model.h"
 
 bool g_isMenuOpen = false;
 bool g_isSettingsOpen = false;
@@ -24,6 +25,7 @@ bool g_pixelationEnabled = true;
 bool g_vhsEnabled = true;
 double g_mouseX = 0.0, g_mouseY = 0.0;
 float g_doorShakeTime = 0.0f;
+float g_doorLockedMessageTimer = 0.0f;
 
 Camera g_camera;
 AudioManager g_audioManager;
@@ -82,6 +84,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             if (glm::dot(viewDir, glm::normalize(doorPos - g_camera.position)) > 0.7f) {
                 g_audioManager.playDoorLockedSound();
                 g_doorShakeTime = 0.25f;
+                g_doorLockedMessageTimer = 3.0f;
             }
         }
     }
@@ -154,11 +157,17 @@ int main()
     std::vector<std::string> texturePaths = {
         "assets/brick.png",
         "assets/grass.png",
-        "assets/door.png"
+        "assets/door.png",
+        "assets/key_model/key_001.png",
+        "assets/key_model/key_002.png",
+        "assets/key_model/key_003.png",
+        "assets/key_model/ring.png"
     };
     TextureArray corridorTextures(texturePaths);
 
     BatchedGeometry batchedScene;
+    
+    Model keyModel("assets/key_model/door_keys.obj", texturePaths);
 
     TextRenderer textRenderer;
     textRenderer.load("C:/Windows/Fonts/arial.ttf", 48);
@@ -221,6 +230,10 @@ int main()
             if (g_doorShakeTime > 0.0f) {
                 g_doorShakeTime -= deltaTime;
             }
+
+            if (g_doorLockedMessageTimer > 0.0f) {
+                g_doorLockedMessageTimer -= deltaTime;
+            }
         }
         
         g_audioManager.update();
@@ -254,6 +267,26 @@ int main()
         shader.setMatrix4fv("model", glm::mat4(1.0f));
         corridorTextures.bind(0);
         batchedScene.render();
+
+        glm::mat4 keyTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.75f, 1.05f, -9.45f));
+        keyTransform = glm::scale(keyTransform, glm::vec3(0.2f));
+        shader.setMatrix4fv("model", keyTransform);
+        shader.setFloat("doorShake", 0.0f);
+        keyModel.render();
+
+        if (g_doorLockedMessageTimer > 0.0f && !g_isMenuOpen) {
+            glDisable(GL_DEPTH_TEST);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            std::string msg = "Hmm... Seems its locked";
+            float scale = 0.5f;
+            float x = 600.0f - (textRenderer.getTextWidth(msg, scale) / 2.0f);
+            textRenderer.renderText(textShader, msg, x, 100.0f, scale, glm::vec3(0.9f));
+
+            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+        }
 
         if (g_isMenuOpen) {
             glDisable(GL_DEPTH_TEST);

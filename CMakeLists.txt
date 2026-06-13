@@ -59,6 +59,7 @@ set(SOURCE_FILES
     src/audio_manager.cpp
     src/camera.cpp
     src/text_renderer.cpp
+    src/model.cpp
 )
 
 set(EXTERNAL_LIBS
