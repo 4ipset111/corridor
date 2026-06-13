@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# Compiled directory
+*.dir
+[Bb]uild/

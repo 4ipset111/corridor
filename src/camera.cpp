@@ -80,6 +80,16 @@ void Camera::updateMovement(bool moveForward, bool moveBackward, bool moveLeft, 
         position -= right * SPEED;
     if (moveRight)
         position += right * SPEED;
+
+    float margin = 0.3f;
+    if (position.x < -1.0f + margin)
+        position.x = -1.0f + margin;
+    if (position.x > 1.0f - margin)
+        position.x = 1.0f - margin;
+    if (position.z < -10.0f + margin)
+        position.z = -10.0f + margin;
+    if (position.z > 10.0f - margin)
+        position.z = 10.0f - margin;
 }
 
 void Camera::setFloors(const std::vector<FloorAABB>& newFloors) {

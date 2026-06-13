@@ -65,7 +65,7 @@ int main()
     FloorGeometry floorGeometry;
 
     std::vector<FloorAABB> floors;
-    floors.push_back({-2.0f, 2.0f, -10.0f, 10.0f, -1.0f});
+    floors.push_back({-1.0f, 1.0f, -10.0f, 10.0f, -1.0f});
     g_camera.setFloors(floors);
 
     float pixelSize = 0.02f;
