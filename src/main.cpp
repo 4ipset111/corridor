@@ -21,6 +21,14 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos)
     g_camera.updateMouse(xpos, ypos);
 }
 
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_F && action == GLFW_PRESS)
+    {
+        g_camera.flashlightOn = !g_camera.flashlightOn;
+    }
+}
+
 int main()
 {
     if (!glfwInit())
@@ -52,6 +60,7 @@ int main()
     glfwSwapInterval(1);
 
     glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetKeyCallback(window, keyCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -135,6 +144,7 @@ int main()
         shader.setFloat("time", static_cast<float>(glfwGetTime()));
         shader.setFloat("pixelSize", pixelSize);
         shader.setVec3("viewPos", g_camera.getFlashlightPos());
+        shader.setFloat("flashlightOn", g_camera.flashlightOn ? 1.0f : 0.0f);
         shader.setVec3("viewDir", g_camera.getFlashlightDir());
 
         brickTexture.bind();

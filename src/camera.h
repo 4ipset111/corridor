@@ -19,6 +19,7 @@ public:
     float lastMouseY;
     bool firstMouse;
 
+    bool flashlightOn;
     float fov;
     float velocity;
     static constexpr float GRAVITY = 0.01f;

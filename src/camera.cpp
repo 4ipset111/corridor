@@ -11,7 +11,8 @@ Camera::Camera()
       lastMouseY(0.0f),
       firstMouse(true),
       velocity(0.0f),
-      fov(45.0f)
+      fov(45.0f),
+      flashlightOn(true)
 {
     flashlightPos = position;
     flashlightDir = getFront();

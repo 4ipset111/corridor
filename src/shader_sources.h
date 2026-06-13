@@ -36,6 +36,7 @@ uniform sampler2D texture1;
 uniform float time;
 uniform float pixelSize;
 uniform vec3 viewPos;
+uniform float flashlightOn;
 uniform vec3 viewDir;
 
 float random(vec2 st) {
@@ -90,7 +91,7 @@ void main()
 
     float diff = max(dot(norm, -lightToFrag), 0.0);
     float ambient = 0.15;
-    float lighting = (ambient + diff * intensity) * attenuation;
+    float lighting = (ambient + diff * intensity * flashlightOn) * attenuation;
 
     vec4 vhsTexColor = applyVHSEffect(TexCoord, time);
     FragColor = vhsTexColor * vec4(vec3(lighting), 1.0);
