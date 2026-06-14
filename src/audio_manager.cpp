@@ -3,7 +3,7 @@
 #include <fmod_errors.h>
 
 AudioManager::AudioManager()
-    : fmodSystem(nullptr), backgroundMusicSound(nullptr), flashlightSound(nullptr), backgroundMusicChannel(nullptr) {}
+    : fmodSystem(nullptr), backgroundMusicSound(nullptr), flashlightSound(nullptr), keySound(nullptr), doorLockedSound(nullptr), backgroundMusicChannel(nullptr) {}
 
 AudioManager::~AudioManager() {
     if (backgroundMusicChannel) {
@@ -14,6 +14,12 @@ AudioManager::~AudioManager() {
     }
     if (backgroundMusicSound) {
         backgroundMusicSound->release();
+    }
+    if (keySound) {
+        keySound->release();
+    }
+    if (doorLockedSound) {
+        doorLockedSound->release();
     }
     if (fmodSystem) {
         fmodSystem->close();
@@ -104,6 +110,21 @@ bool AudioManager::loadFlashlightSound(const std::string& path) {
 void AudioManager::playFlashlightSound() {
     if (fmodSystem && flashlightSound) {
         fmodSystem->playSound(flashlightSound, nullptr, false, nullptr);
+    }
+}
+
+bool AudioManager::loadKeySound(const std::string& path) {
+    if (!fmodSystem) return false;
+    FMOD_RESULT result = fmodSystem->createSound(path.c_str(), FMOD_2D, nullptr, &keySound);
+    if (checkFMODError(result, "FMOD System::createSound (key sound)")) {
+        return false;
+    }
+    return true;
+}
+
+void AudioManager::playKeySound() {
+    if (fmodSystem && keySound) {
+        fmodSystem->playSound(keySound, nullptr, false, nullptr);
     }
 }
 

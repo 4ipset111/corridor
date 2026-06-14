@@ -18,6 +18,8 @@ public:
     void setBackgroundMusicVolume(float volume);
     bool loadFlashlightSound(const std::string& path);
     void playFlashlightSound();
+    bool loadKeySound(const std::string& path);
+    void playKeySound();
     bool loadDoorLockedSound(const std::string& path);
     void playDoorLockedSound();
 
@@ -25,6 +27,7 @@ private:
     FMOD::System* fmodSystem;
     FMOD::Sound* backgroundMusicSound;
     FMOD::Sound* flashlightSound;
+    FMOD::Sound* keySound;
     FMOD::Sound* doorLockedSound;
     FMOD::Channel* backgroundMusicChannel;
     bool checkFMODError(FMOD_RESULT result, const std::string& message);

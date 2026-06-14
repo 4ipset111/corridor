@@ -26,6 +26,10 @@ bool g_vhsEnabled = true;
 double g_mouseX = 0.0, g_mouseY = 0.0;
 float g_doorShakeTime = 0.0f;
 float g_doorLockedMessageTimer = 0.0f;
+bool g_hasKeys = false;
+bool g_isDoorOpening = false;
+float g_doorOpenAngle = 0.0f;
+std::string g_interactionMessage = "";
 
 Camera g_camera;
 AudioManager g_audioManager;
@@ -78,13 +82,28 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     }
     if (key == GLFW_KEY_E && action == GLFW_PRESS && !g_isMenuOpen)
     {
+        glm::vec3 keyPos(0.75f, 1.05f, -9.45f);
+        if (!g_hasKeys && glm::distance(g_camera.position, keyPos) < 1.5f) {
+            glm::vec3 viewDir = g_camera.getFront();
+            if (glm::dot(viewDir, glm::normalize(keyPos - g_camera.position)) > 0.8f) {
+                g_hasKeys = true;
+                g_audioManager.playKeySound();
+                return;
+            }
+        }
+
         glm::vec3 doorPos(0.0f, 1.0f, -10.0f);
         if (glm::distance(g_camera.position, doorPos) < 2.5f) {
             glm::vec3 viewDir = g_camera.getFlashlightDir();
             if (glm::dot(viewDir, glm::normalize(doorPos - g_camera.position)) > 0.7f) {
-                g_audioManager.playDoorLockedSound();
-                g_doorShakeTime = 0.25f;
-                g_doorLockedMessageTimer = 3.0f;
+                if (g_hasKeys) {
+                    g_isDoorOpening = true;
+                } else {
+                    g_audioManager.playDoorLockedSound();
+                    g_doorShakeTime = 0.25f;
+                    g_interactionMessage = "Hmm... Seems its locked";
+                    g_doorLockedMessageTimer = 3.0f;
+                }
             }
         }
     }
@@ -127,6 +146,20 @@ int main()
         glfwTerminate();
         return -1;
     }
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+    int monitorX, monitorY;
+    glfwGetMonitorPos(monitor, &monitorX, &monitorY);
+
+    int windowWidth, windowHeight;
+    glfwGetWindowSize(window, &windowWidth, &windowHeight);
+
+    int centerX = monitorX + (mode->width - windowWidth) / 2;
+    int centerY = monitorY + (mode->height - windowHeight) / 2;
+
+    glfwSetWindowPos(window, centerX, centerY);
+
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
@@ -166,6 +199,7 @@ int main()
     TextureArray corridorTextures(texturePaths);
 
     BatchedGeometry batchedScene;
+    DoorGeometry doorGeom;
     
     Model keyModel("assets/key_model/door_keys.obj", texturePaths);
 
@@ -196,6 +230,10 @@ int main()
 
     if (!g_audioManager.loadDoorLockedSound("assets/closed_door.mp3")) {
         std::cerr << "Failed to load door sound" << std::endl;
+    }
+
+    if (!g_audioManager.loadKeySound("assets/door_key.mp3")) {
+        std::cerr << "Failed to load key sound" << std::endl;
     }
 
     while (glfwGetTime() < 2.0) {
@@ -234,6 +272,10 @@ int main()
             if (g_doorLockedMessageTimer > 0.0f) {
                 g_doorLockedMessageTimer -= deltaTime;
             }
+
+            if (g_isDoorOpening && g_doorOpenAngle < 90.0f) {
+                g_doorOpenAngle += deltaTime * 120.0f;
+            }
         }
         
         g_audioManager.update();
@@ -268,21 +310,33 @@ int main()
         corridorTextures.bind(0);
         batchedScene.render();
 
-        glm::mat4 keyTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.75f, 1.05f, -9.45f));
-        keyTransform = glm::scale(keyTransform, glm::vec3(0.2f));
-        shader.setMatrix4fv("model", keyTransform);
-        shader.setFloat("doorShake", 0.0f);
-        keyModel.render();
+        glm::mat4 doorModel = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 0.0f, -10.0f));
+        doorModel = glm::rotate(doorModel, glm::radians(-g_doorOpenAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+        doorModel = glm::translate(doorModel, glm::vec3(1.0f, 0.0f, 10.0f));
+        
+        if (g_doorShakeTime > 0.0f) {
+            doorModel = glm::translate(doorModel, glm::vec3(doorShakeAmount, 0.0f, 0.0f));
+        }
+        shader.setMatrix4fv("model", doorModel);
+        glVertexAttrib1f(3, 2.0f);
+        doorGeom.render();
+
+        if (!g_hasKeys) {
+            glm::mat4 keyTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.75f, 1.05f, -9.45f));
+            keyTransform = glm::scale(keyTransform, glm::vec3(0.2f));
+            shader.setMatrix4fv("model", keyTransform);
+            shader.setFloat("doorShake", 0.0f);
+            keyModel.render();
+        }
 
         if (g_doorLockedMessageTimer > 0.0f && !g_isMenuOpen) {
             glDisable(GL_DEPTH_TEST);
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-            std::string msg = "Hmm... Seems its locked";
             float scale = 0.5f;
-            float x = 600.0f - (textRenderer.getTextWidth(msg, scale) / 2.0f);
-            textRenderer.renderText(textShader, msg, x, 100.0f, scale, glm::vec3(0.9f));
+            float x = 600.0f - (textRenderer.getTextWidth(g_interactionMessage, scale) / 2.0f);
+            textRenderer.renderText(textShader, g_interactionMessage, x, 100.0f, scale, glm::vec3(0.9f));
 
             glDisable(GL_BLEND);
             glEnable(GL_DEPTH_TEST);
