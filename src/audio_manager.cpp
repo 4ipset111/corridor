@@ -2,6 +2,9 @@
 #include <iostream>
 #include <fmod_errors.h>
 
+extern float g_sfxVolume;
+extern float g_musicVolume;
+
 AudioManager::AudioManager()
     : fmodSystem(nullptr), backgroundMusicSound(nullptr), flashlightSound(nullptr), keySound(nullptr), doorLockedSound(nullptr), backgroundMusicChannel(nullptr) {}
 
@@ -71,6 +74,9 @@ bool AudioManager::playBackgroundMusic() {
     }
 
     FMOD_RESULT result = fmodSystem->playSound(backgroundMusicSound, nullptr, false, &backgroundMusicChannel);
+    if (backgroundMusicChannel) {
+        backgroundMusicChannel->setVolume(g_musicVolume);
+    }
     if (checkFMODError(result, "FMOD System::playSound (background music)")) {
         return false;
     }
@@ -109,7 +115,9 @@ bool AudioManager::loadFlashlightSound(const std::string& path) {
 
 void AudioManager::playFlashlightSound() {
     if (fmodSystem && flashlightSound) {
-        fmodSystem->playSound(flashlightSound, nullptr, false, nullptr);
+        FMOD::Channel* channel = nullptr;
+        fmodSystem->playSound(flashlightSound, nullptr, false, &channel);
+        if (channel) channel->setVolume(g_sfxVolume);
     }
 }
 
@@ -124,7 +132,9 @@ bool AudioManager::loadKeySound(const std::string& path) {
 
 void AudioManager::playKeySound() {
     if (fmodSystem && keySound) {
-        fmodSystem->playSound(keySound, nullptr, false, nullptr);
+        FMOD::Channel* channel = nullptr;
+        fmodSystem->playSound(keySound, nullptr, false, &channel);
+        if (channel) channel->setVolume(g_sfxVolume);
     }
 }
 
@@ -139,7 +149,9 @@ bool AudioManager::loadDoorLockedSound(const std::string& path) {
 
 void AudioManager::playDoorLockedSound() {
     if (fmodSystem && doorLockedSound) {
-        fmodSystem->playSound(doorLockedSound, nullptr, false, nullptr);
+        FMOD::Channel* channel = nullptr;
+        fmodSystem->playSound(doorLockedSound, nullptr, false, &channel);
+        if (channel) channel->setVolume(g_sfxVolume);
     }
 }
 

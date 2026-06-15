@@ -23,6 +23,10 @@ bool g_isMenuOpen = false;
 bool g_isSettingsOpen = false;
 bool g_pixelationEnabled = true;
 bool g_vhsEnabled = true;
+float g_musicVolume = 0.5f;
+float g_sfxVolume = 0.5f;
+bool g_isDraggingMusic = false;
+bool g_isDraggingSFX = false;
 double g_mouseX = 0.0, g_mouseY = 0.0;
 float g_doorShakeTime = 0.0f;
 float g_doorLockedMessageTimer = 0.0f;
@@ -38,8 +42,17 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
     g_mouseX = xpos;
     g_mouseY = ypos;
-    if (!g_isMenuOpen)
+    if (!g_isMenuOpen) {
         g_camera.updateMouse(xpos, ypos);
+    } else if (g_isSettingsOpen) {
+        if (g_isDraggingMusic) {
+            g_musicVolume = glm::clamp((static_cast<float>(xpos) - 450.0f) / 300.0f, 0.0f, 1.0f);
+            g_audioManager.setBackgroundMusicVolume(g_musicVolume);
+        }
+        if (g_isDraggingSFX) {
+            g_sfxVolume = glm::clamp((static_cast<float>(xpos) - 450.0f) / 300.0f, 0.0f, 1.0f);
+        }
+    }
 }
 
 bool isHovering(float x, float y, float minX, float maxX, float minY, float maxY) {
@@ -47,7 +60,13 @@ bool isHovering(float x, float y, float minX, float maxX, float minY, float maxY
 }
 
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    if (g_isMenuOpen && button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+    if (g_isMenuOpen && button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (action == GLFW_RELEASE) {
+            g_isDraggingMusic = false;
+            g_isDraggingSFX = false;
+            return;
+        }
+
         float screenY = 800.0f - static_cast<float>(g_mouseY);
         float screenX = static_cast<float>(g_mouseX);
 
@@ -66,7 +85,14 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
                 g_pixelationEnabled = !g_pixelationEnabled;
             } else if (isHovering(screenX, screenY, 450, 750, 390, 430)) { // VHS Toggle
                 g_vhsEnabled = !g_vhsEnabled;
-            } else if (isHovering(screenX, screenY, 450, 750, 340, 380)) { // Back
+            } else if (isHovering(screenX, screenY, 450, 750, 340, 380)) { // Music Slider
+                g_isDraggingMusic = true;
+                g_musicVolume = glm::clamp((screenX - 450.0f) / 300.0f, 0.0f, 1.0f);
+                g_audioManager.setBackgroundMusicVolume(g_musicVolume);
+            } else if (isHovering(screenX, screenY, 450, 750, 290, 330)) { // SFX Slider
+                g_isDraggingSFX = true;
+                g_sfxVolume = glm::clamp((screenX - 450.0f) / 300.0f, 0.0f, 1.0f);
+            } else if (isHovering(screenX, screenY, 450, 750, 240, 280)) { // Back
                 g_isSettingsOpen = false;
             }
         }
@@ -378,21 +404,29 @@ int main()
             } else {
                 std::string pixText = (g_pixelationEnabled ? "[X] PIXELATION" : "[ ] PIXELATION");
                 std::string vhsText = (g_vhsEnabled ? "[X] VHS EFFECT" : "[ ] VHS EFFECT");
+                std::string musicText = "MUSIC VOL: " + std::to_string(int(g_musicVolume * 100)) + "%";
+                std::string sfxText   = "SFX VOL: " + std::to_string(int(g_sfxVolume * 100)) + "%";
                 
                 glm::vec3 pixColor = isHovering(screenX, screenY, 450, 750, 440, 480) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
                 glm::vec3 vhsColor = isHovering(screenX, screenY, 450, 750, 390, 430) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
-                glm::vec3 backColor = isHovering(screenX, screenY, 450, 750, 340, 380) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(0.7f);
+                glm::vec3 musicColor = isHovering(screenX, screenY, 450, 750, 340, 380) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
+                glm::vec3 sfxColor   = isHovering(screenX, screenY, 450, 750, 290, 330) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(1.0f);
+                glm::vec3 backColor = isHovering(screenX, screenY, 450, 750, 240, 280) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(0.7f);
 
                 float pixX = centerX - (textRenderer.getTextWidth(pixText, 0.6f) / 2.0f);
                 float vhsX = centerX - (textRenderer.getTextWidth(vhsText, 0.6f) / 2.0f);
+                float musicX = centerX - (textRenderer.getTextWidth(musicText, 0.6f) / 2.0f);
+                float sfxX   = centerX - (textRenderer.getTextWidth(sfxText, 0.6f) / 2.0f);
                 float backX = centerX - (textRenderer.getTextWidth("BACK", 0.6f) / 2.0f);
 
                 textRenderer.renderText(textShader, pixText, pixX, 450.0f, 0.6f, pixColor);
                 textRenderer.renderText(textShader, vhsText, vhsX, 400.0f, 0.6f, vhsColor);
-                textRenderer.renderText(textShader, "BACK", backX, 350.0f, 0.6f, backColor);
+                textRenderer.renderText(textShader, musicText, musicX, 350.0f, 0.6f, musicColor);
+                textRenderer.renderText(textShader, sfxText, sfxX, 300.0f, 0.6f, sfxColor);
+                textRenderer.renderText(textShader, "BACK", backX, 250.0f, 0.6f, backColor);
 
                 std::string controlsTitle = "CONTROLS";
-                std::string controlsInfo = "WASD - Move | F - Flashlight | ESC - Menu";
+                std::string controlsInfo = "WASD - Move | E - Interact | F - Flashlight | ESC - Menu";
                 float titleX = centerX - (textRenderer.getTextWidth(controlsTitle, 0.5f) / 2.0f);
                 float infoX = centerX - (textRenderer.getTextWidth(controlsInfo, 0.4f) / 2.0f);
                 
