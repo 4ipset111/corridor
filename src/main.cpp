@@ -81,9 +81,9 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
                 glfwSetWindowShouldClose(window, true);
             }
         } else {
-            if (isHovering(screenX, screenY, 450, 750, 440, 480)) { // Pixelation Toggle
+            if (isHovering(screenX, screenY, 450, 750, 440, 480)) { // Pixelation Checkbox
                 g_pixelationEnabled = !g_pixelationEnabled;
-            } else if (isHovering(screenX, screenY, 450, 750, 390, 430)) { // VHS Toggle
+            } else if (isHovering(screenX, screenY, 450, 750, 390, 430)) { // VHS Checkbox
                 g_vhsEnabled = !g_vhsEnabled;
             } else if (isHovering(screenX, screenY, 450, 750, 340, 380)) { // Music Slider
                 g_isDraggingMusic = true;
