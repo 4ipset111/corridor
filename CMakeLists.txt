@@ -27,27 +27,27 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glfw glm freetype)
 
-set(FMOD_SDK_PATH "C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows")
+set(FMOD_SDK_PATH "external/fmod")
 
 find_library(FMOD_CORE_LIBRARY
     NAMES fmod fmod_vc
     PATHS
-        "${FMOD_SDK_PATH}/api/core/lib"
-        "${FMOD_SDK_PATH}/api/core/lib/x64"
-        "${FMOD_SDK_PATH}/api/core/lib/win/x86_64"
-        "${FMOD_SDK_PATH}/api/core/lib/linux/x86_64"
-        "${FMOD_SDK_PATH}/api/core/lib/mac"
+        "${FMOD_SDK_PATH}/core/lib"
+        "${FMOD_SDK_PATH}/core/lib/x64"
+        "${FMOD_SDK_PATH}/core/lib/win/x86_64"
+        "${FMOD_SDK_PATH}/core/lib/linux/x86_64"
+        "${FMOD_SDK_PATH}/core/lib/mac"
     NO_DEFAULT_PATH
 )
 
 find_library(FMOD_STUDIO_LIBRARY
     NAMES fmodstudio fmodstudio_vc
     PATHS
-        "${FMOD_SDK_PATH}/api/studio/lib"
-        "${FMOD_SDK_PATH}/api/studio/lib/x64"
-        "${FMOD_SDK_PATH}/api/studio/lib/win/x86_64"
-        "${FMOD_SDK_PATH}/api/studio/lib/linux/x86_64"
-        "${FMOD_SDK_PATH}/api/studio/lib/mac"
+        "${FMOD_SDK_PATH}/studio/lib"
+        "${FMOD_SDK_PATH}/studio/lib/x64"
+        "${FMOD_SDK_PATH}/studio/lib/win/x86_64"
+        "${FMOD_SDK_PATH}/studio/lib/linux/x86_64"
+        "${FMOD_SDK_PATH}/studio/lib/mac"
     NO_DEFAULT_PATH
 )
 
@@ -76,8 +76,8 @@ target_include_directories(corridor PRIVATE
     src
     external/glad/include
     external/stb
-    "${FMOD_SDK_PATH}/api/core/inc"
-    "${FMOD_SDK_PATH}/api/studio/inc"
+    "${FMOD_SDK_PATH}/core/inc"
+    "${FMOD_SDK_PATH}/studio/inc"
 )
 
 target_link_libraries(corridor PRIVATE glfw glm::glm freetype
@@ -87,11 +87,11 @@ target_link_libraries(corridor PRIVATE glfw glm::glm freetype
 
 if(WIN32)
     file(GLOB FMOD_CORE_DLLS
-        "${FMOD_SDK_PATH}/api/core/lib/x64/*.dll"
+        "${FMOD_SDK_PATH}/core/lib/x64/*.dll"
     )
 
     file(GLOB FMOD_STUDIO_DLLS
-        "${FMOD_SDK_PATH}/api/studio/lib/x64/*.dll"
+        "${FMOD_SDK_PATH}/studio/lib/x64/*.dll"
     )
 
     add_custom_command(TARGET corridor POST_BUILD
