@@ -29,31 +29,29 @@ FetchContent_MakeAvailable(glfw glm freetype)
 
 set(FMOD_SDK_PATH "external/fmod" CACHE PATH "Path to the FMOD SDK root")
 
+if(WIN32)
+    set(_FMOD_ARCH_DIR "x64")
+elseif(APPLE)
+    set(_FMOD_ARCH_DIR "")
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(_FMOD_ARCH_DIR "x86_64")
+else()
+    set(_FMOD_ARCH_DIR "x86")
+endif()
+
 set(_FMOD_CORE_SEARCH_DIRS
+    "${FMOD_SDK_PATH}/core/lib/${_FMOD_ARCH_DIR}"
     "${FMOD_SDK_PATH}/core/lib"
-    "${FMOD_SDK_PATH}/core/lib/x64"
-    "${FMOD_SDK_PATH}/core/lib/x86"
-    "${FMOD_SDK_PATH}/core/lib/x86_64"
-    "${FMOD_SDK_PATH}/core/lib/arm64"
-    "${FMOD_SDK_PATH}/core/lib/arm"
 )
 
 set(_FMOD_STUDIO_SEARCH_DIRS
+    "${FMOD_SDK_PATH}/studio/lib/${_FMOD_ARCH_DIR}"
     "${FMOD_SDK_PATH}/studio/lib"
-    "${FMOD_SDK_PATH}/studio/lib/x64"
-    "${FMOD_SDK_PATH}/studio/lib/x86"
-    "${FMOD_SDK_PATH}/studio/lib/x86_64"
-    "${FMOD_SDK_PATH}/studio/lib/arm64"
-    "${FMOD_SDK_PATH}/studio/lib/arm"
 )
 
 set(_FMOD_FSBANK_SEARCH_DIRS
+    "${FMOD_SDK_PATH}/fsbank/lib/${_FMOD_ARCH_DIR}"
     "${FMOD_SDK_PATH}/fsbank/lib"
-    "${FMOD_SDK_PATH}/fsbank/lib/x64"
-    "${FMOD_SDK_PATH}/fsbank/lib/x86"
-    "${FMOD_SDK_PATH}/fsbank/lib/x86_64"
-    "${FMOD_SDK_PATH}/fsbank/lib/arm64"
-    "${FMOD_SDK_PATH}/fsbank/lib/arm"
 )
 
 find_library(FMOD_CORE_LIBRARY
