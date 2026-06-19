@@ -40,6 +40,10 @@ find_library(FMOD_CORE_LIBRARY
     NO_DEFAULT_PATH
 )
 
+if(NOT FMOD_CORE_LIBRARY)
+    message(FATAL_ERROR "FMOD core library not found. Please download FMOD Engine from https://www.fmod.com/download and set FMOD_SDK_PATH to the location of the FMOD SDK.")
+endif()
+
 find_library(FMOD_STUDIO_LIBRARY
     NAMES fmodstudio fmodstudio_vc
     PATHS
@@ -50,6 +54,10 @@ find_library(FMOD_STUDIO_LIBRARY
         "${FMOD_SDK_PATH}/studio/lib/mac"
     NO_DEFAULT_PATH
 )
+
+if(NOT FMOD_STUDIO_LIBRARY)
+    message(FATAL_ERROR "FMOD studio library not found. Please download FMOD Studio from https://www.fmod.com/download and set FMOD_SDK_PATH to the location of the FMOD SDK.")
+endif()
 
 set(SOURCE_FILES
     src/main.cpp
