@@ -1,0 +1,187 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-windows:
+    name: Windows (MSVC)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache CMake dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: windows-deps-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: windows-deps-
+
+      - name: Install FMOD SDK
+        shell: pwsh
+        run: |
+          # Invoke-WebRequest -Uri "$env:FMOD_DOWNLOAD_URL" -OutFile fmod.zip
+          # Expand-Archive fmod.zip -DestinationPath external/fmod
+          if (-Not (Test-Path "external/fmod")) {
+            Write-Error "FMOD SDK not found at external/fmod. See workflow comments."
+            exit 1
+          }
+        env:
+          FMOD_DOWNLOAD_URL: ${{ secrets.FMOD_DOWNLOAD_URL }}
+
+      - name: Configure
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Collect artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Copy-Item build/Release/corridor.exe dist/ -ErrorAction SilentlyContinue
+          Copy-Item build/Release/*.dll         dist/ -ErrorAction SilentlyContinue
+          if (Test-Path assets) { Copy-Item assets dist/assets -Recurse }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: corridor-windows-x64
+          path: dist/
+          retention-days: 30
+
+  build-linux:
+    name: Linux (GCC)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            build-essential \
+            libgl1-mesa-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxxf86vm-dev \
+            libbz2-dev \
+            libpng-dev \
+            zlib1g-dev
+
+      - name: Cache CMake dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: linux-deps-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: linux-deps-
+
+      - name: Install FMOD SDK
+        run: |
+          # curl -fsSL "$FMOD_DOWNLOAD_URL" -o fmod.tar.gz
+          # mkdir -p external/fmod && tar -xzf fmod.tar.gz -C external/fmod
+          if [ ! -d "external/fmod" ]; then
+            echo "::error::FMOD SDK not found at external/fmod. See workflow comments."
+            exit 1
+          fi
+        env:
+          FMOD_DOWNLOAD_URL: ${{ secrets.FMOD_DOWNLOAD_URL }}
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist
+          cp build/corridor dist/
+          find build -maxdepth 1 -name "*.so*" -exec cp {} dist/ \;
+          [ -d assets ] && cp -r assets dist/assets || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: corridor-linux-x64
+          path: dist/
+          retention-days: 30
+
+  build-macos:
+    name: macOS (Clang)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache CMake dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: macos-deps-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: macos-deps-
+
+      - name: Install FMOD SDK
+        run: |
+          # curl -fsSL "$FMOD_DOWNLOAD_URL" -o fmod.tar.gz
+          # mkdir -p external/fmod && tar -xzf fmod.tar.gz -C external/fmod
+          if [ ! -d "external/fmod" ]; then
+            echo "::error::FMOD SDK not found at external/fmod. See workflow comments."
+            exit 1
+          fi
+          echo "--- core/lib/mac ---"
+          ls external/fmod/core/lib/mac/   2>/dev/null || true
+          echo "--- studio/lib/mac ---"
+          ls external/fmod/studio/lib/mac/ 2>/dev/null || true
+        env:
+          FMOD_DOWNLOAD_URL: ${{ secrets.FMOD_DOWNLOAD_URL }}
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel $(sysctl -n hw.logicalcpu)
+
+      - name: Fix dylib ids & re-sign
+        run: |
+          cd build
+          for dylib in *.dylib; do
+            [ -f "$dylib" ] || continue
+            install_name_tool -id "@loader_path/$dylib" "$dylib"
+            for dep in $(otool -L "$dylib" | awk 'NR>1{print $1}' | grep "external/fmod"); do
+              base=$(basename "$dep")
+              install_name_tool -change "$dep" "@loader_path/$base" "$dylib"
+            done
+            codesign --force --sign - "$dylib" 2>/dev/null || true
+          done
+          for dep in $(otool -L corridor | awk 'NR>1{print $1}' | grep "external/fmod"); do
+            base=$(basename "$dep")
+            install_name_tool -change "$dep" "@loader_path/$base" corridor
+          done
+          codesign --force --sign - corridor 2>/dev/null || true
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist
+          cp build/corridor dist/
+          find build -maxdepth 1 -name "*.dylib" -exec cp {} dist/ \;
+          [ -d assets ] && cp -r assets dist/assets || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: corridor-macos
+          path: dist/
+          retention-days: 30
