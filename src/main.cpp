@@ -6,6 +6,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <string>
 #include <map>
+#include <cstdlib>
+#include <ctime>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -37,6 +39,106 @@ std::string g_interactionMessage = "";
 
 Camera g_camera;
 AudioManager g_audioManager;
+
+std::vector<Room> g_rooms;
+
+void generateRooms() {
+    g_rooms.clear();
+    
+    Room room0;
+    room0.type = RoomType::START;
+    room0.startZ = 10.0f;
+    room0.endZ = -10.0f;
+    room0.width = 1.0f;
+    room0.height = 3.0f;
+    room0.hasKey = true;
+    room0.keyPos = glm::vec3(0.5f, -0.6f, -5.0f);
+    room0.keyPickedUp = false;
+    room0.hasLever = false;
+    room0.leverPulled = false;
+    room0.hasDoor = true;
+    room0.doorOpenAngle = 0.0f;
+    room0.doorLocked = true;
+    room0.isDoorOpening = false;
+    room0.doorShakeTime = 0.0f;
+    g_rooms.push_back(room0);
+
+    srand(static_cast<unsigned int>(time(nullptr)));
+
+    float currentZ = -10.0f;
+    for (int i = 0; i < 4; ++i) {
+        Room room;
+        int r = rand() % 3;
+        if (r == 0) {
+            room.type = RoomType::EMPTY_LONG_BIG;
+            room.width = 3.0f;
+            float length = 30.0f;
+            room.height = 5.0f;
+            room.startZ = currentZ;
+            room.endZ = currentZ - length;
+            room.hasKey = false;
+            room.keyPickedUp = false;
+            room.hasLever = false;
+            room.leverPulled = false;
+            room.hasDoor = true;
+            room.doorLocked = false;
+        } else if (r == 1) {
+            room.type = RoomType::KEY_ROOM;
+            room.width = 2.0f;
+            float length = 20.0f;
+            room.height = 3.0f;
+            room.startZ = currentZ;
+            room.endZ = currentZ - length;
+            room.hasKey = true;
+            float kX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * (room.width * 2.0f - 1.2f);
+            float kZ = room.startZ - 4.0f - (static_cast<float>(rand()) / RAND_MAX) * (length - 8.0f);
+            room.keyPos = glm::vec3(kX, -0.6f, kZ);
+            room.keyPickedUp = false;
+            room.hasLever = false;
+            room.leverPulled = false;
+            room.hasDoor = true;
+            room.doorLocked = true;
+        } else {
+            room.type = RoomType::LEVER_ROOM;
+            room.width = 2.5f;
+            float length = 22.0f;
+            room.height = 3.5f;
+            room.startZ = currentZ;
+            room.endZ = currentZ - length;
+            room.hasKey = false;
+            room.keyPickedUp = false;
+            room.hasLever = true;
+            float lX = (rand() % 2 == 0) ? -room.width + 0.15f : room.width - 0.15f;
+            float lZ = room.startZ - 4.0f - (static_cast<float>(rand()) / RAND_MAX) * (length - 8.0f);
+            room.leverPos = glm::vec3(lX, 0.3f, lZ);
+            room.leverPulled = false;
+            room.hasDoor = true;
+            room.doorLocked = true;
+        }
+        room.doorOpenAngle = 0.0f;
+        room.isDoorOpening = false;
+        room.doorShakeTime = 0.0f;
+        g_rooms.push_back(room);
+        currentZ = room.endZ;
+    }
+
+    Room roomLast;
+    roomLast.type = RoomType::EMPTY_LONG_BIG;
+    roomLast.width = 1.5f;
+    roomLast.height = 3.0f;
+    roomLast.startZ = currentZ;
+    roomLast.endZ = currentZ - 20.0f;
+    roomLast.hasKey = false;
+    roomLast.keyPickedUp = false;
+    roomLast.hasLever = false;
+    roomLast.leverPulled = false;
+    roomLast.hasDoor = false;
+    roomLast.doorOpenAngle = 0.0f;
+    roomLast.doorLocked = false;
+    roomLast.isDoorOpening = false;
+    roomLast.doorShakeTime = 0.0f;
+    g_rooms.push_back(roomLast);
+}
 
 void mouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -108,27 +210,58 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     }
     if (key == GLFW_KEY_E && action == GLFW_PRESS && !g_isMenuOpen)
     {
-        glm::vec3 keyPos(0.75f, 1.05f, -9.45f);
-        if (!g_hasKeys && glm::distance(g_camera.position, keyPos) < 1.5f) {
-            glm::vec3 viewDir = g_camera.getFront();
-            if (glm::dot(viewDir, glm::normalize(keyPos - g_camera.position)) > 0.8f) {
-                g_hasKeys = true;
-                g_audioManager.playKeySound();
-                return;
+        for (auto& room : g_rooms) {
+            if (room.hasKey && !room.keyPickedUp) {
+                if (glm::distance(g_camera.position, room.keyPos) < 1.8f) {
+                    glm::vec3 viewDir = g_camera.getFront();
+                    if (glm::dot(viewDir, glm::normalize(room.keyPos - g_camera.position)) > 0.5f) {
+                        room.keyPickedUp = true;
+                        g_audioManager.playKeySound();
+                        room.doorLocked = false;
+                        g_interactionMessage = "Picked up key!";
+                        g_doorLockedMessageTimer = 2.0f;
+                        return;
+                    }
+                }
             }
         }
 
-        glm::vec3 doorPos(0.0f, 1.0f, -10.0f);
-        if (glm::distance(g_camera.position, doorPos) < 2.5f) {
-            glm::vec3 viewDir = g_camera.getFlashlightDir();
-            if (glm::dot(viewDir, glm::normalize(doorPos - g_camera.position)) > 0.7f) {
-                if (g_hasKeys) {
-                    g_isDoorOpening = true;
-                } else {
-                    g_audioManager.playDoorLockedSound();
-                    g_doorShakeTime = 0.25f;
-                    g_interactionMessage = "Hmm... Seems its locked";
-                    g_doorLockedMessageTimer = 3.0f;
+        for (auto& room : g_rooms) {
+            if (room.hasLever && !room.leverPulled) {
+                if (glm::distance(g_camera.position, room.leverPos) < 1.8f) {
+                    glm::vec3 viewDir = g_camera.getFront();
+                    if (glm::dot(viewDir, glm::normalize(room.leverPos - g_camera.position)) > 0.5f) {
+                        room.leverPulled = true;
+                        g_audioManager.playKeySound();
+                        room.doorLocked = false;
+                        g_interactionMessage = "Lever pulled! Door unlocked.";
+                        g_doorLockedMessageTimer = 2.0f;
+                        return;
+                    }
+                }
+            }
+        }
+
+        for (auto& room : g_rooms) {
+            if (room.hasDoor) {
+                glm::vec3 doorPos(0.0f, 1.0f, room.endZ);
+                if (glm::distance(g_camera.position, doorPos) < 2.5f) {
+                    glm::vec3 viewDir = g_camera.getFlashlightDir();
+                    if (glm::dot(viewDir, glm::normalize(doorPos - g_camera.position)) > 0.6f) {
+                        if (!room.doorLocked) {
+                            room.isDoorOpening = true;
+                        } else {
+                            g_audioManager.playDoorLockedSound();
+                            room.doorShakeTime = 0.25f;
+                            if (room.type == RoomType::LEVER_ROOM) {
+                                g_interactionMessage = "Door is locked. Find the lever!";
+                            } else {
+                                g_interactionMessage = "Door is locked. Find the key!";
+                            }
+                            g_doorLockedMessageTimer = 3.0f;
+                        }
+                        return;
+                    }
                 }
             }
         }
@@ -270,8 +403,10 @@ int main()
     };
     TextureArray corridorTextures(texturePaths);
 
-    BatchedGeometry batchedScene;
+    generateRooms();
+    BatchedGeometry batchedScene(g_rooms);
     DoorGeometry doorGeom;
+    CubeGeometry cubeGeom;
     
     Model keyModel("assets/key_model/door_keys.obj", texturePaths);
 
@@ -287,7 +422,9 @@ int main()
     textShader.setMatrix4fv("projection", projectionText);
 
     std::vector<FloorAABB> floors;
-    floors.push_back({-1.0f, 1.0f, -10.0f, 10.0f, -1.0f});
+    for (const auto& room : g_rooms) {
+        floors.push_back({-room.width, room.width, room.endZ, room.startZ, -1.0f});
+    }
     g_camera.setFloors(floors);
 
     if (!g_audioManager.loadBackgroundMusic("assets/bgsong.mp3")) {
@@ -335,21 +472,24 @@ int main()
         bool moveLeft = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS;
         bool moveRight = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS;
 
+        bool sprint = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
+
         if (!g_isMenuOpen) {
-            g_camera.updateMovement(moveForward, moveBackward, moveLeft, moveRight, deltaTime);
+            g_camera.updateMovement(moveForward, moveBackward, moveLeft, moveRight, sprint, deltaTime);
             g_camera.updateGravity(deltaTime);
             g_camera.updateFlashlight(deltaTime);
             
-            if (g_doorShakeTime > 0.0f) {
-                g_doorShakeTime -= deltaTime;
+            for (auto& room : g_rooms) {
+                if (room.doorShakeTime > 0.0f) {
+                    room.doorShakeTime -= deltaTime;
+                }
+                if (room.isDoorOpening && room.doorOpenAngle < 90.0f) {
+                    room.doorOpenAngle += deltaTime * 120.0f;
+                }
             }
 
             if (g_doorLockedMessageTimer > 0.0f) {
                 g_doorLockedMessageTimer -= deltaTime;
-            }
-
-            if (g_isDoorOpening && g_doorOpenAngle < 90.0f) {
-                g_doorOpenAngle += deltaTime * 120.0f;
             }
         }
         
@@ -372,32 +512,62 @@ int main()
         shader.setFloat("flashlightOn", g_camera.flashlightOn ? 1.0f : 0.0f);
         shader.setVec3("viewDir", g_camera.getFlashlightDir());
 
-        float doorShakeAmount = 0.0f;
-        if (g_doorShakeTime > 0.0f) {
-            doorShakeAmount = static_cast<float>(sin(glfwGetTime() * 100.0) * 0.02);
-        }
-        shader.setFloat("doorShake", doorShakeAmount);
+        shader.setFloat("doorShake", 0.0f);
         shader.setMatrix4fv("model", glm::mat4(1.0f));
         corridorTextures.bind(0);
         batchedScene.render();
 
-        glm::mat4 doorModel = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 0.0f, -10.0f));
-        doorModel = glm::rotate(doorModel, glm::radians(-g_doorOpenAngle), glm::vec3(0.0f, 1.0f, 0.0f));
-        doorModel = glm::translate(doorModel, glm::vec3(1.0f, 0.0f, 10.0f));
-        
-        if (g_doorShakeTime > 0.0f) {
-            doorModel = glm::translate(doorModel, glm::vec3(doorShakeAmount, 0.0f, 0.0f));
+        for (const auto& room : g_rooms) {
+            if (room.hasDoor) {
+                glm::mat4 doorModel = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 0.0f, room.endZ + 0.02f));
+                doorModel = glm::rotate(doorModel, glm::radians(-room.doorOpenAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+                doorModel = glm::translate(doorModel, glm::vec3(1.0f, 0.0f, 10.0f));
+                
+                float doorShakeAmount = 0.0f;
+                if (room.doorShakeTime > 0.0f) {
+                    doorShakeAmount = static_cast<float>(sin(glfwGetTime() * 100.0) * 0.02);
+                    doorModel = glm::translate(doorModel, glm::vec3(doorShakeAmount, 0.0f, 0.0f));
+                }
+                shader.setMatrix4fv("model", doorModel);
+                shader.setFloat("doorShake", doorShakeAmount);
+                glVertexAttrib1f(3, 2.0f);
+                doorGeom.render();
+            }
         }
-        shader.setMatrix4fv("model", doorModel);
-        glVertexAttrib1f(3, 2.0f);
-        doorGeom.render();
 
-        if (!g_hasKeys) {
-            glm::mat4 keyTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.75f, 1.05f, -9.45f));
-            keyTransform = glm::scale(keyTransform, glm::vec3(0.2f));
-            shader.setMatrix4fv("model", keyTransform);
-            shader.setFloat("doorShake", 0.0f);
-            keyModel.render();
+        for (const auto& room : g_rooms) {
+            if (room.hasKey && !room.keyPickedUp) {
+                glm::mat4 pedestalTransform = glm::translate(glm::mat4(1.0f), room.keyPos - glm::vec3(0.0f, 0.4f, 0.0f));
+                pedestalTransform = glm::scale(pedestalTransform, glm::vec3(0.4f, 0.8f, 0.4f));
+                shader.setMatrix4fv("model", pedestalTransform);
+                shader.setFloat("doorShake", 0.0f);
+                glVertexAttrib1f(3, 0.0f);
+                cubeGeom.render();
+
+                glm::mat4 keyTransform = glm::translate(glm::mat4(1.0f), room.keyPos + glm::vec3(0.0f, 0.12f, 0.0f));
+                keyTransform = glm::scale(keyTransform, glm::vec3(0.2f));
+                shader.setMatrix4fv("model", keyTransform);
+                shader.setFloat("doorShake", 0.0f);
+                keyModel.render();
+            }
+            if (room.hasLever) {
+                glm::mat4 baseTransform = glm::translate(glm::mat4(1.0f), room.leverPos);
+                baseTransform = glm::scale(baseTransform, glm::vec3(0.2f, 0.2f, 0.2f));
+                shader.setMatrix4fv("model", baseTransform);
+                shader.setFloat("doorShake", 0.0f);
+                glVertexAttrib1f(3, 0.0f);
+                cubeGeom.render();
+
+                glm::mat4 handleTransform = glm::translate(glm::mat4(1.0f), room.leverPos);
+                float angle = room.leverPulled ? -45.0f : 45.0f;
+                handleTransform = glm::rotate(handleTransform, glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+                handleTransform = glm::translate(handleTransform, glm::vec3(0.0f, 0.15f, 0.0f));
+                handleTransform = glm::scale(handleTransform, glm::vec3(0.04f, 0.3f, 0.04f));
+                shader.setMatrix4fv("model", handleTransform);
+                shader.setFloat("doorShake", 0.0f);
+                glVertexAttrib1f(3, 0.0f);
+                cubeGeom.render();
+            }
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

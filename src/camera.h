@@ -29,7 +29,7 @@ public:
     Camera();
 
     void updateMouse(double xpos, double ypos);
-    void updateMovement(bool moveForward, bool moveBackward, bool moveLeft, bool moveRight, float dt);
+    void updateMovement(bool moveForward, bool moveBackward, bool moveLeft, bool moveRight, bool sprint, float dt);
     void updateGravity(float dt);
     void updateFlashlight(float dt);
 
@@ -47,6 +47,9 @@ private:
     glm::vec3 flashlightDir;
     std::vector<FloorAABB> floors;
     float castRayDown() const;
+    
+    float bobTime;
+    float bobOffset;
     
     static constexpr float MOUSE_SENSITIVITY = 0.07f;
     static constexpr float SPEED = 0.05f;

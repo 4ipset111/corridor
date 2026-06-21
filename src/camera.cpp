@@ -2,6 +2,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
 #include <iostream>
+#include "geometry.h"
+
+extern std::vector<Room> g_rooms;
 
 Camera::Camera()
     : position(0.0f, FLOOR_HEIGHT + PLAYER_HEIGHT, 9.7f),
@@ -12,7 +15,9 @@ Camera::Camera()
       firstMouse(true),
       velocity(0.0f),
       fov(45.0f),
-      flashlightOn(true)
+      flashlightOn(true),
+      bobTime(0.0f),
+      bobOffset(0.0f)
 {
     flashlightPos = position;
     flashlightDir = getFront();
@@ -60,9 +65,10 @@ void Camera::updateMouse(double xpos, double ypos)
         pitch = -89.0f;
 }
 
-void Camera::updateMovement(bool moveForward, bool moveBackward, bool moveLeft, bool moveRight, float dt)
+void Camera::updateMovement(bool moveForward, bool moveBackward, bool moveLeft, bool moveRight, bool sprint, float dt)
 {
-    float currentSpeed = SPEED * dt * 60.0f;
+    float speedMultiplier = sprint ? 1.7f : 1.0f;
+    float currentSpeed = SPEED * speedMultiplier * dt * 60.0f;
 
     glm::vec3 front = getFront();
     front.y = 0.0f;
@@ -85,14 +91,67 @@ void Camera::updateMovement(bool moveForward, bool moveBackward, bool moveLeft, 
         position += right * currentSpeed;
 
     float margin = 0.3f;
-    if (position.x < -1.0f + margin)
-        position.x = -1.0f + margin;
-    if (position.x > 1.0f - margin)
-        position.x = 1.0f - margin;
-    if (position.z < -10.0f + margin)
-        position.z = -10.0f + margin;
-    if (position.z > 10.0f - margin)
-        position.z = 10.0f - margin;
+
+    int currentRoomIdx = -1;
+    for (size_t i = 0; i < g_rooms.size(); ++i) {
+        if (position.z <= g_rooms[i].startZ && position.z >= g_rooms[i].endZ) {
+            currentRoomIdx = static_cast<int>(i);
+            break;
+        }
+    }
+
+    if (currentRoomIdx != -1) {
+        const auto& room = g_rooms[currentRoomIdx];
+
+        if (position.x < -room.width + margin)
+            position.x = -room.width + margin;
+        if (position.x > room.width - margin)
+            position.x = room.width - margin;
+
+        if (currentRoomIdx == 0) {
+            if (position.z > room.startZ - margin)
+                position.z = room.startZ - margin;
+        } else {
+            if (position.z > room.startZ - margin) {
+                if (position.x < -1.0f + margin || position.x > 1.0f - margin) {
+                    position.z = room.startZ - margin;
+                }
+            }
+        }
+
+        bool canPass = (room.doorOpenAngle >= 89.0f);
+        if (!canPass) {
+            if (position.z < room.endZ + margin) {
+                position.z = room.endZ + margin;
+            }
+        } else {
+            if (position.z < room.endZ + margin) {
+                if (position.x < -1.0f + margin || position.x > 1.0f - margin) {
+                    position.z = room.endZ + margin;
+                }
+            }
+        }
+    } else {
+        if (position.z > 10.0f - margin) position.z = 10.0f - margin;
+        if (!g_rooms.empty()) {
+            float minZ = g_rooms.back().endZ;
+            if (position.z < minZ + margin) position.z = minZ + margin;
+        }
+    }
+
+    bool isMoving = moveForward || moveBackward || moveLeft || moveRight;
+    if (isMoving) {
+        float frequency = sprint ? 14.0f : 8.0f;
+        float amplitude = sprint ? 0.08f : 0.04f;
+        bobTime += dt * frequency;
+        bobOffset = sin(bobTime) * amplitude;
+    } else {
+        bobOffset = glm::mix(bobOffset, 0.0f, 0.1f * dt * 60.0f);
+        if (std::abs(bobOffset) < 0.001f) {
+            bobOffset = 0.0f;
+            bobTime = 0.0f;
+        }
+    }
 }
 
 void Camera::setFloors(const std::vector<FloorAABB>& newFloors) {
@@ -162,9 +221,11 @@ glm::vec3 Camera::getFlashlightPos() const
 
 glm::mat4 Camera::getViewMatrix() const
 {
+    glm::vec3 bobbedPos = position;
+    bobbedPos.y += bobOffset;
     return glm::lookAt(
-        position,
-        position + getFront(),
+        bobbedPos,
+        bobbedPos + getFront(),
         glm::vec3(0.0f, 1.0f, 0.0f)
     );
 }
