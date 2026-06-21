@@ -212,6 +212,52 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     Shader shader(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE);
+    Shader postShader(POST_VERTEX_SOURCE, POST_FRAGMENT_SOURCE);
+
+    unsigned int fbo;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    unsigned int textureColorbuffer;
+    glGenTextures(1, &textureColorbuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1200, 800, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 1200, 800);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cerr << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    float quadVertices[] = {
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    };
+    unsigned int quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glBindVertexArray(0);
 
     std::vector<std::string> texturePaths = {
         "assets/brick.png",
@@ -266,7 +312,7 @@ int main()
         glfwPollEvents();
     }
 
-    float pixelSize = 0.02f;
+    float pixelSize = 0.004f;
     float deltaTime = 0.0f;
     float lastFrame = 0.0f;
 
@@ -279,6 +325,9 @@ int main()
         std::string title = "corridor | FPS: " + std::to_string(static_cast<int>(1.0f / deltaTime));
         glfwSetWindowTitle(window, title.c_str());
 
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glEnable(GL_DEPTH_TEST);
+        glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         bool moveForward = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS;
@@ -318,13 +367,9 @@ int main()
         shader.use();
         shader.setMatrix4fv("view", view);
         shader.setMatrix4fv("projection", projection);
-        shader.setFloat("time", static_cast<float>(glfwGetTime()));
-        shader.setFloat("pixelSize", pixelSize);
         shader.setInt("textureArray", 0);
         shader.setVec3("viewPos", g_camera.getFlashlightPos());
         shader.setFloat("flashlightOn", g_camera.flashlightOn ? 1.0f : 0.0f);
-        shader.setFloat("pixelationOn", g_pixelationEnabled ? 1.0f : 0.0f);
-        shader.setFloat("vhsOn", g_vhsEnabled ? 1.0f : 0.0f);
         shader.setVec3("viewDir", g_camera.getFlashlightDir());
 
         float doorShakeAmount = 0.0f;
@@ -354,6 +399,25 @@ int main()
             shader.setFloat("doorShake", 0.0f);
             keyModel.render();
         }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        postShader.use();
+        postShader.setFloat("time", static_cast<float>(glfwGetTime()));
+        postShader.setFloat("pixelSizeX", pixelSize);
+        postShader.setFloat("pixelSizeY", pixelSize * 1.5f);
+        postShader.setFloat("pixelationOn", g_pixelationEnabled ? 1.0f : 0.0f);
+        postShader.setFloat("vhsOn", g_vhsEnabled ? 1.0f : 0.0f);
+        postShader.setInt("screenTexture", 0);
+
+        glBindVertexArray(quadVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
 
         if (g_doorLockedMessageTimer > 0.0f && !g_isMenuOpen) {
             glDisable(GL_DEPTH_TEST);
@@ -441,6 +505,12 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    glDeleteFramebuffers(1, &fbo);
+    glDeleteTextures(1, &textureColorbuffer);
+    glDeleteRenderbuffers(1, &rbo);
+    glDeleteVertexArrays(1, &quadVAO);
+    glDeleteBuffers(1, &quadVBO);
 
     glfwDestroyWindow(window);
     glfwTerminate();

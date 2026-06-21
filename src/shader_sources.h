@@ -40,55 +40,9 @@ out vec4 FragColor;
 in flat float TexID;
 
 uniform sampler2DArray textureArray;
-uniform float time;
-uniform float pixelSize;
 uniform vec3 viewPos;
 uniform float flashlightOn;
 uniform vec3 viewDir;
-uniform float pixelationOn;
-uniform float vhsOn;
-
-float random(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-}
-
-vec4 applyVHSEffect(vec2 uv, float t) {
-    float jitter = (vhsOn > 0.5 && random(vec2(t, t)) > 0.98) ? (random(vec2(t)) - 0.5) * 0.02 : 0.0;
-    vec2 jitteredUV = uv + vec2(jitter, 0.0);
-
-    vec2 pixelatedUV = (pixelationOn > 0.5) ? floor(jitteredUV / pixelSize) * pixelSize : jitteredUV;
-
-    float glitch = 0.0;
-    if (vhsOn > 0.5) {
-        glitch = sin(t * 10.0 + uv.y * 40.0) * 0.02;
-        glitch += (random(vec2(floor(t * 10.0), floor(uv.y * 20.0))) - 0.5) * 0.05;
-        if (random(vec2(t)) < 0.8) glitch *= 0.1;
-    }
-
-    vec3 uvLayer = vec3(pixelatedUV, TexID);
-    float r = texture(textureArray, uvLayer + vec3(glitch + 0.005, 0.0, 0.0)).r;
-    float g = texture(textureArray, uvLayer).g;
-    float b = texture(textureArray, uvLayer - vec3(glitch + 0.005, 0.0, 0.0)).b;
-
-    vec4 vhsColor = vec4(r, g, b, 1.0);
-
-    if (vhsOn > 0.5) {
-        float scanline = sin(uv.y * 400.0 - t * 10.0) * 0.15;
-        vhsColor.rgb -= scanline;
-
-        float noise = (random(vec2(uv.x + t, uv.y + t)) - 0.5) * 0.25;
-        vhsColor.rgb += noise;
-
-        vhsColor.rgb = mix(vhsColor.rgb, vec3(dot(vhsColor.rgb, vec3(0.299, 0.587, 0.114))), 0.2);
-
-        float scratchX = random(vec2(floor(t * 10.0), 0.3));
-        float scratch = 1.0 - smoothstep(0.0, 0.0015, abs(uv.x - scratchX));
-        if (random(vec2(t, 0.5)) > 0.98)
-            vhsColor.rgb -= scratch * 0.5;
-    }
-
-    return vhsColor;
-}
 
 void main()
 {
@@ -108,8 +62,9 @@ void main()
     float ambient = 0.15;
     float lighting = (ambient + diff * intensity * flashlightOn) * attenuation;
 
-    vec4 vhsTexColor = applyVHSEffect(TexCoord, time);
-    FragColor = vhsTexColor * vec4(vec3(lighting), 1.0);
+    vec3 uvLayer = vec3(TexCoord, TexID);
+    vec4 texColor = texture(textureArray, uvLayer);
+    FragColor = texColor * vec4(vec3(lighting), 1.0);
 }
 )";
 
@@ -133,6 +88,82 @@ uniform vec3 textColor;
 void main() {
     vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);
     color = vec4(textColor, 1.0) * sampled;
+}
+)";
+
+const char* POST_VERTEX_SOURCE = R"(
+#version 460 core
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec2 aTexCoords;
+
+out vec2 TexCoords;
+
+void main() {
+    gl_Position = vec4(aPos, 0.0, 1.0);
+    TexCoords = aTexCoords;
+}
+)";
+
+const char* POST_FRAGMENT_SOURCE = R"(
+#version 460 core
+out vec4 FragColor;
+
+in vec2 TexCoords;
+
+uniform sampler2D screenTexture;
+uniform float time;
+uniform float pixelSizeX;
+uniform float pixelSizeY;
+uniform float pixelationOn;
+uniform float vhsOn;
+
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
+vec4 applyVHSEffect(vec2 uv, float t) {
+    float jitter = (vhsOn > 0.5 && random(vec2(t, t)) > 0.985) ? (random(vec2(t)) - 0.5) * 0.005 : 0.0;
+    vec2 jitteredUV = uv + vec2(jitter, 0.0);
+
+    vec2 pixelatedUV = jitteredUV;
+    if (pixelationOn > 0.5) {
+        pixelatedUV.x = floor(jitteredUV.x / pixelSizeX) * pixelSizeX;
+        pixelatedUV.y = floor(jitteredUV.y / pixelSizeY) * pixelSizeY;
+    }
+
+    float glitch = 0.0;
+    if (vhsOn > 0.5) {
+        glitch = sin(t * 10.0 + uv.y * 40.0) * 0.005;
+        glitch += (random(vec2(floor(t * 10.0), floor(uv.y * 20.0))) - 0.5) * 0.01;
+        if (random(vec2(t)) < 0.9) glitch *= 0.1;
+    }
+
+    float r = texture(screenTexture, pixelatedUV + vec2(glitch + 0.0015, 0.0)).r;
+    float g = texture(screenTexture, pixelatedUV).g;
+    float b = texture(screenTexture, pixelatedUV - vec2(glitch + 0.0015, 0.0)).b;
+
+    vec4 vhsColor = vec4(r, g, b, 1.0);
+
+    if (vhsOn > 0.5) {
+        float scanline = sin(uv.y * 400.0 - t * 10.0) * 0.05;
+        vhsColor.rgb -= scanline;
+
+        float noise = (random(vec2(uv.x + t, uv.y + t)) - 0.5) * 0.08;
+        vhsColor.rgb += noise;
+
+        vhsColor.rgb = mix(vhsColor.rgb, vec3(dot(vhsColor.rgb, vec3(0.299, 0.587, 0.114))), 0.08);
+
+        float scratchX = random(vec2(floor(t * 10.0), 0.3));
+        float scratch = 1.0 - smoothstep(0.0, 0.001, abs(uv.x - scratchX));
+        if (random(vec2(t, 0.5)) > 0.985)
+            vhsColor.rgb -= scratch * 0.15;
+    }
+
+    return vhsColor;
+}
+
+void main() {
+    FragColor = applyVHSEffect(TexCoords, time);
 }
 )";
 
